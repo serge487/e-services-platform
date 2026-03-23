@@ -23,10 +23,10 @@ class AdminPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
-           
             ->id('admin')
             ->path('admin')
-            ->login()   
+            ->authGuard('admin')
+            ->login()
             ->brandName('E-Services Admin')
             ->colors([
                 'primary' => Color::Blue,
