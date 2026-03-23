@@ -1,12 +1,21 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\TwoFactorSetupController;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Override Fortify's logout to redirect to /login
+Route::post('/logout', function () {
+    Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/login');
+})->name('logout');
 
 // Municipality protected routes
 Route::prefix('municipality')
@@ -17,7 +26,6 @@ Route::prefix('municipality')
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
-        // 2FA setup (enable/show QR)
         Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])
             ->name('2fa.setup');
         Route::post('/2fa/enable', [TwoFactorSetupController::class, 'enable'])
@@ -27,7 +35,6 @@ Route::prefix('municipality')
         Route::delete('/2fa/disable', [TwoFactorSetupController::class, 'disable'])
             ->name('2fa.disable');
 
-        // Dashboard sections (shells — filled in later)
         Route::get('/office-profile', fn() => view('municipality.office-profile'))
             ->name('office-profile');
         Route::get('/services', fn() => view('municipality.services'))
