@@ -36,12 +36,12 @@
             </a>
         </nav>
         <div class="p-4 border-t border-indigo-700">
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-700">
-                    🚪 Logout
-                </button>
-            </form>
+            <form method="POST" action="/logout">
+    @csrf
+    <button type="submit" class="w-full text-left px-4 py-2 rounded-lg hover:bg-indigo-700">
+        🚪 Logout
+    </button>
+</form>
         </div>
     </aside>
 
