@@ -45,6 +45,14 @@ Route::get('/', function () {
         return redirect('/admin');
     }
 
+    if (
+        $user->role === 'citizen'
+        && ! $user->identity_verified_at
+        && ! config('citizen.skip_identity_verification_gate')
+    ) {
+        return redirect()->route('citizen.identity-verification.show');
+    }
+
     return redirect()->route('citizen.dashboard');
 });
 

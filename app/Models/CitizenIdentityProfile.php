@@ -14,8 +14,19 @@ class CitizenIdentityProfile extends Model
         'date_of_birth',
         'place_of_birth',
         'father_name',
+        'mother_name',
+        'grandfather_name',
+        'gender',
+        'blood_type',
+        'registry_number',
+        'id_issue_date',
+        'id_expiry_date',
         'id_document_path',
+        'id_document_front_path',
+        'id_document_back_path',
         'ocr_raw_text',
+        'ocr_raw_text_front',
+        'ocr_raw_text_back',
         'extracted_at',
         'confirmed_at',
     ];
@@ -23,9 +34,11 @@ class CitizenIdentityProfile extends Model
     protected function casts(): array
     {
         return [
-            'date_of_birth' => 'date',
-            'extracted_at' => 'datetime',
-            'confirmed_at' => 'datetime',
+            'date_of_birth'   => 'date',
+            'id_issue_date'   => 'date',
+            'id_expiry_date'  => 'date',
+            'extracted_at'    => 'datetime',
+            'confirmed_at'    => 'datetime',
         ];
     }
 
