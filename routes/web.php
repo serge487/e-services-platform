@@ -7,11 +7,11 @@ use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\TwoFactorSetupController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    return redirect()->route('citizen.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -19,6 +19,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
 
 // Citizen Routes
 Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function () {
