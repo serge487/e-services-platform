@@ -11,17 +11,11 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
     public function create(): View
     {
         return view('auth.login');
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
@@ -30,38 +24,43 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
-        // Check if user is citizen
         if ($user->role !== 'citizen') {
             Auth::logout();
-            return redirect()->route('login')->withErrors(['email' => 'Unauthorized access.']);
+            return redirect()->route('citizen.login')->withErrors(['email' => 'Unauthorized access.']);
         }
 
-        // Check if account is active
-        if (!$user->is_active) {
+        if (! $user->is_active) {
             Auth::logout();
-            return redirect()->route('login')->withErrors(['email' => 'Account deactivated.']);
+            return redirect()->route('citizen.login')->withErrors(['email' => 'Account deactivated.']);
         }
 
-        // Check if 2FA is enabled
-        if ($user->two_factor_confirmed_at) {
-            session(['2fa_verified' => false]);
-            return redirect()->route('2fa.verify');
+        $request->session()->forget('citizen_session_unlocked');
+
+        if (! $user->identity_verified_at) {
+            return redirect()->route('citizen.identity-verification.show');
         }
 
-        return redirect()->route('citizen.dashboard');
+        if (! $user->two_factor_confirmed_at) {
+            return redirect()->route('citizen.2fa.setup');
+        }
+
+        session(['citizen_session_unlocked' => false]);
+
+        return redirect()->route('citizen.2fa.verify');
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
+        $wasMunicipality = Auth::user()?->role === 'municipality';
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return $wasMunicipality
+            ? redirect()->route('municipality.login')
+            : redirect()->route('citizen.login');
     }
 }

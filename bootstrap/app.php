@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'municipality' => \App\Http\Middleware\EnsureMunicipalityRole::class,
+            'citizen.gate' => \App\Http\Middleware\EnsureCitizenSessionGate::class,
         ]);
 
         $middleware->redirectUsersTo(function (Request $request) {
@@ -27,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return '/admin';
             }
 
-            return '/';
+            return '/citizen/dashboard';
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {

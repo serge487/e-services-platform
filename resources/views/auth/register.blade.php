@@ -10,12 +10,11 @@
     <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
 
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Create Account 🏛️</h1>
-        <p class="text-gray-500 mb-6">Register to access government e-services</p>
+        <p class="text-gray-500 mb-6">Register to access government e-services. You will verify your Lebanese national ID on the next step.</p>
 
-        <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('citizen.register.store') }}">
             @csrf
 
-            <!-- Name -->
             <div>
                 <label class="block text-sm font-medium text-gray-700">Full Name</label>
                 <input type="text" name="name" value="{{ old('name') }}" required autofocus
@@ -25,7 +24,6 @@
                 @enderror
             </div>
 
-            <!-- Email -->
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700">Email</label>
                 <input type="email" name="email" value="{{ old('email') }}" required
@@ -35,7 +33,16 @@
                 @enderror
             </div>
 
-            <!-- Password -->
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700">Phone number</label>
+                <input type="tel" name="phone_number" value="{{ old('phone_number') }}" required autocomplete="tel"
+                    placeholder="e.g. +961 ..."
+                    class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                @error('phone_number')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700">Password</label>
                 <input type="password" name="password" required
@@ -45,37 +52,23 @@
                 @enderror
             </div>
 
-            <!-- Confirm Password -->
             <div class="mt-4">
                 <label class="block text-sm font-medium text-gray-700">Confirm Password</label>
                 <input type="password" name="password_confirmation" required
                     class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
             </div>
 
-            <!-- ID Upload -->
-            <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-700">Upload Your ID 🪪</label>
-                <input type="file" name="id_document" accept="image/*,.pdf" required
-                    class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                @error('id_document')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <!-- Register Button -->
             <button type="submit" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md font-medium">
                 Create Account
             </button>
         </form>
 
-        <!-- Divider -->
         <div class="mt-6 flex items-center justify-center gap-2">
             <hr class="w-full border-gray-300">
             <span class="text-sm text-gray-500 whitespace-nowrap">OR</span>
             <hr class="w-full border-gray-300">
         </div>
 
-        <!-- Social Login -->
         <div class="mt-4 flex flex-col gap-3">
             <a href="{{ route('social.redirect', 'google') }}" class="flex items-center justify-center gap-2 w-full py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-md text-sm font-medium">
                 Continue with Google
@@ -85,10 +78,9 @@
             </a>
         </div>
 
-        <!-- Login Link -->
         <p class="mt-6 text-center text-sm text-gray-600">
             Already have an account?
-            <a href="{{ route('login') }}" class="text-indigo-600 hover:underline font-medium">Sign in</a>
+            <a href="{{ route('citizen.login') }}" class="text-indigo-600 hover:underline font-medium">Sign in</a>
         </p>
 
     </div>

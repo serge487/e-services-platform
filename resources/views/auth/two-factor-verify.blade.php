@@ -11,7 +11,7 @@
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Two-Factor Authentication</h1>
         <p class="text-gray-500 mb-6">Enter the 6-digit code from your authenticator app to continue.</p>
 
-        <form method="POST" action="{{ route('2fa.validate') }}">
+        <form method="POST" action="{{ route('citizen.2fa.validate') }}">
             @csrf
             <div>
                 <label class="block text-sm font-medium text-gray-700">Authentication Code</label>

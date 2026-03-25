@@ -5,19 +5,24 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use PragmaRX\Google2FALaravel\Support\Authenticator;
 
 class TwoFactorController extends Controller
 {
-    /**
-     * Show 2FA setup page
-     */
     public function setup()
     {
         $user = Auth::user();
+
+        if ($user->role !== 'citizen') {
+            abort(403);
+        }
+
+        if (! $user->identity_verified_at) {
+            return redirect()->route('citizen.identity-verification.show');
+        }
+
         $google2fa = app('pragmarx.google2fa');
 
-        if (!$user->two_factor_secret) {
+        if (! $user->two_factor_secret) {
             $secret = $google2fa->generateSecretKey();
             $user->update(['two_factor_secret' => $secret]);
         }
@@ -31,9 +36,6 @@ class TwoFactorController extends Controller
         return view('auth.two-factor-setup', compact('qrCodeUrl'));
     }
 
-    /**
-     * Verify and enable 2FA
-     */
     public function enable(Request $request)
     {
         $request->validate([
@@ -41,30 +43,36 @@ class TwoFactorController extends Controller
         ]);
 
         $user = Auth::user();
+
+        if (! $user->identity_verified_at) {
+            return redirect()->route('citizen.identity-verification.show');
+        }
         $google2fa = app('pragmarx.google2fa');
 
         $valid = $google2fa->verifyKey($user->two_factor_secret, $request->code);
 
-        if (!$valid) {
+        if (! $valid) {
             return back()->withErrors(['code' => 'Invalid code. Please try again.']);
         }
 
         $user->update(['two_factor_confirmed_at' => now()]);
 
+        $request->session()->put('citizen_session_unlocked', true);
+
         return redirect()->route('citizen.dashboard')->with('success', '2FA enabled successfully!');
     }
 
-    /**
-     * Show 2FA verify page
-     */
     public function verify()
     {
+        $user = Auth::user();
+
+        if (! $user->identity_verified_at) {
+            return redirect()->route('citizen.identity-verification.show');
+        }
+
         return view('auth.two-factor-verify');
     }
 
-    /**
-     * Verify 2FA code on login
-     */
     public function validateCode(Request $request)
     {
         $request->validate([
@@ -72,15 +80,19 @@ class TwoFactorController extends Controller
         ]);
 
         $user = Auth::user();
+
+        if (! $user->identity_verified_at) {
+            return redirect()->route('citizen.identity-verification.show');
+        }
         $google2fa = app('pragmarx.google2fa');
 
         $valid = $google2fa->verifyKey($user->two_factor_secret, $request->code);
 
-        if (!$valid) {
+        if (! $valid) {
             return back()->withErrors(['code' => 'Invalid code. Please try again.']);
         }
 
-        session(['2fa_verified' => true]);
+        $request->session()->put('citizen_session_unlocked', true);
 
         return redirect()->route('citizen.dashboard');
     }

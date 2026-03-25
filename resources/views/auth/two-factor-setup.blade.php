@@ -17,7 +17,7 @@
         </div>
 
         <!-- Verify Code Form -->
-        <form method="POST" action="{{ route('2fa.enable') }}">
+        <form method="POST" action="{{ route('citizen.2fa.enable') }}">
             @csrf
             <div>
                 <label class="block text-sm font-medium text-gray-700">Enter the 6-digit code from your app</label>
@@ -31,7 +31,6 @@
             </button>
         </form>
 
-        <a href="{{ route('citizen.dashboard') }}" class="mt-4 inline-block text-sm text-gray-500 hover:underline">Skip for now</a>
     </div>
 </body>
 </html>
