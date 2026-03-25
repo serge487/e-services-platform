@@ -16,7 +16,7 @@
             <div class="mb-4 text-sm text-green-600">{{ session('status') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('citizen.login.store') }}">
+        <form method="POST" action="{{ route('citizen.login.store', absolute: false) }}">
             @csrf
 
             <div>

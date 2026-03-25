@@ -147,54 +147,54 @@
     <div id="sidebar">
         <div class="sidebar-brand">
             <h5>🏛️ Municipality Portal</h5>
-            <small>{{ auth()->user()->municipality->name ?? 'Office Management' }}</small>
+            <small>{{ auth()->user()->municipality?->name ?? 'Office Management' }}</small>
         </div>
 
         <nav class="sidebar-nav">
             <div class="nav-label">Main</div>
 
-            <a href="{{ route('municipality.dashboard') }}"
+            <a href="{{ route('municipality.dashboard', absolute: false) }}"
                class="{{ request()->routeIs('municipality.dashboard') ? 'active' : '' }}">
                 <i class="bi bi-speedometer2"></i> Dashboard
             </a>
 
-            <a href="{{ route('municipality.office-profile') }}"
+            <a href="{{ route('municipality.office-profile', absolute: false) }}"
                class="{{ request()->routeIs('municipality.office-profile') ? 'active' : '' }}">
                 <i class="bi bi-building"></i> Office Profile
             </a>
 
             <div class="nav-label">Services</div>
 
-            <a href="{{ route('municipality.services') }}"
+            <a href="{{ route('municipality.services', absolute: false) }}"
                class="{{ request()->routeIs('municipality.services') ? 'active' : '' }}">
                 <i class="bi bi-grid-3x3-gap"></i> Services
             </a>
 
-            <a href="{{ route('municipality.requests') }}"
+            <a href="{{ route('municipality.requests', absolute: false) }}"
                class="{{ request()->routeIs('municipality.requests') ? 'active' : '' }}">
                 <i class="bi bi-file-earmark-text"></i> Requests
             </a>
 
-            <a href="{{ route('municipality.appointments') }}"
+            <a href="{{ route('municipality.appointments', absolute: false) }}"
                class="{{ request()->routeIs('municipality.appointments') ? 'active' : '' }}">
                 <i class="bi bi-calendar-check"></i> Appointments
             </a>
 
             <div class="nav-label">Communication</div>
 
-            <a href="{{ route('municipality.feedback') }}"
+            <a href="{{ route('municipality.feedback', absolute: false) }}"
                class="{{ request()->routeIs('municipality.feedback') ? 'active' : '' }}">
                 <i class="bi bi-star"></i> Feedback
             </a>
 
-            <a href="{{ route('municipality.chat') }}"
+            <a href="{{ route('municipality.chat', absolute: false) }}"
                class="{{ request()->routeIs('municipality.chat') ? 'active' : '' }}">
                 <i class="bi bi-chat-dots"></i> Chat
             </a>
 
             <div class="nav-label">Security</div>
 
-            <a href="{{ route('municipality.2fa.setup') }}"
+            <a href="{{ route('municipality.2fa.setup', absolute: false) }}"
                class="{{ request()->routeIs('municipality.2fa.setup') ? 'active' : '' }}">
                 <i class="bi bi-shield-lock"></i> Two-Factor Auth
                 @if(! auth()->user()->two_factor_confirmed_at)
@@ -218,7 +218,7 @@
         <div id="topbar">
             <h6 class="page-title">@yield('page-title', 'Dashboard')</h6>
             <div class="topbar-actions">
-                <form method="POST" action="{{ route('logout') }}">
+                <form method="POST" action="{{ route('logout', absolute: false) }}">
                     @csrf
                     <button type="submit" class="btn-logout">
                         <i class="bi bi-box-arrow-right"></i> Logout
@@ -232,7 +232,7 @@
             @if(! auth()->user()->two_factor_confirmed_at)
                 <div class="twofa-banner">
                     <span>⚠️ <strong>Two-factor authentication is not enabled.</strong> Secure your account now.</span>
-                    <a href="{{ route('municipality.2fa.setup') }}" class="btn btn-sm btn-warning">Enable 2FA</a>
+                    <a href="{{ route('municipality.2fa.setup', absolute: false) }}" class="btn btn-sm btn-warning">Enable 2FA</a>
                 </div>
             @endif
 

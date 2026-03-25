@@ -10,9 +10,9 @@
     <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
 
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Create Account 🏛️</h1>
-        <p class="text-gray-500 mb-6">Register to access government e-services. You will verify your Lebanese national ID on the next step.</p>
+        <p class="text-gray-500 mb-6">Register to access government e-services. After creating your account you will <strong>sign in</strong>, then upload your Lebanese national ID for verification.</p>
 
-        <form method="POST" action="{{ route('citizen.register.store') }}">
+        <form method="POST" action="{{ route('citizen.register.store', absolute: false) }}">
             @csrf
 
             <div>
@@ -25,7 +25,7 @@
             </div>
 
             <div class="mt-4">
-                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <label class="block text-sm font-medium text-gray-700">Email address</label>
                 <input type="email" name="email" value="{{ old('email') }}" required
                     class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                 @error('email')

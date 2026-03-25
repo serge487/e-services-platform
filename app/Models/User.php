@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 
@@ -60,6 +61,11 @@ class User extends Authenticatable implements FilamentUser
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);
+    }
+
+    public function citizenIdentityProfile(): HasOne
+    {
+        return $this->hasOne(CitizenIdentityProfile::class);
     }
     public function serviceRequests()
     {

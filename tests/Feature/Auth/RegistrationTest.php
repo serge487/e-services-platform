@@ -26,7 +26,7 @@ class RegistrationTest extends TestCase
             'password_confirmation' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertRedirect(route('citizen.identity-verification.show', absolute: false));
+        $this->assertGuest();
+        $response->assertRedirect(route('citizen.login', absolute: false));
     }
 }

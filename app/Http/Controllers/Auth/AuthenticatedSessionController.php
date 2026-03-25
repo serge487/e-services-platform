@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->forget('citizen_session_unlocked');
 
-        if (! $user->identity_verified_at) {
+        if (! $user->identity_verified_at && ! config('citizen.skip_identity_verification_gate')) {
             return redirect()->route('citizen.identity-verification.show');
         }
 

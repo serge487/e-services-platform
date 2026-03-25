@@ -10,9 +10,17 @@ use Illuminate\View\View;
 
 class MunicipalitySessionController extends Controller
 {
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
-        return view('municipality.auth.login');
+        $user = Auth::user();
+
+        if ($user && $user->role === 'municipality') {
+            return redirect()->route('municipality.dashboard');
+        }
+
+        return view('municipality.auth.login', [
+            'otherPortalUser' => $user,
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -21,6 +29,18 @@ class MunicipalitySessionController extends Controller
             'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
+
+        if (Auth::check()) {
+            $existing = Auth::user();
+
+            if ($existing->role === 'municipality') {
+                return redirect()->route('municipality.dashboard');
+            }
+
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         if (! Auth::attempt([
             'email'    => $credentials['email'],
