@@ -41,7 +41,7 @@
             </div>
             @endif
 
-            <form method="POST" action="{{ route('municipality.2fa.disable') }}">
+            <form method="POST" action="{{ route('municipality.2fa.disable', absolute: false) }}">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger btn-sm"
@@ -67,7 +67,7 @@
             </p>
             @endif
 
-            <form method="POST" action="{{ route('municipality.2fa.confirm') }}">
+            <form method="POST" action="{{ route('municipality.2fa.confirm', absolute: false) }}">
                 @csrf
                 <div class="mb-3">
                     <label for="code" class="form-label fw-semibold">Confirmation Code</label>
@@ -97,7 +97,7 @@
                 Two-factor authentication adds an extra layer of security to your account.
                 Once enabled, you'll need your phone to sign in.
             </p>
-            <form method="POST" action="{{ route('municipality.2fa.enable') }}">
+            <form method="POST" action="{{ route('municipality.2fa.enable', absolute: false) }}">
                 @csrf
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-shield-plus me-1"></i>Enable Two-Factor Authentication

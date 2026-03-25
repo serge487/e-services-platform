@@ -17,7 +17,7 @@
         </div>
 
         <!-- Verify Code Form -->
-        <form method="POST" action="{{ route('2fa.enable') }}">
+        <form method="POST" action="{{ route('citizen.2fa.enable', absolute: false) }}">
             @csrf
             <div>
                 <label class="block text-sm font-medium text-gray-700">Enter the 6-digit code from your app</label>
@@ -31,7 +31,16 @@
             </button>
         </form>
 
-        <a href="{{ route('citizen.dashboard') }}" class="mt-4 inline-block text-sm text-gray-500 hover:underline">Skip for now</a>
+        @if (! empty($allow2faSkip))
+            <form method="POST" action="{{ route('citizen.2fa.skip-testing', absolute: false) }}" class="mt-6 border-t border-gray-200 pt-4">
+                @csrf
+                <p class="text-xs text-amber-700 mb-2">Testing only: bypass 2FA when <code class="bg-amber-50 px-1 rounded">CITIZEN_ALLOW_2FA_SKIP=true</code> is set.</p>
+                <button type="submit" class="text-sm text-gray-600 hover:text-gray-900 underline">
+                    Skip 2FA (dev / QA)
+                </button>
+            </form>
+        @endif
+
     </div>
 </body>
 </html>

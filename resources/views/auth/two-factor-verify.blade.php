@@ -11,7 +11,7 @@
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Two-Factor Authentication</h1>
         <p class="text-gray-500 mb-6">Enter the 6-digit code from your authenticator app to continue.</p>
 
-        <form method="POST" action="{{ route('2fa.validate') }}">
+        <form method="POST" action="{{ route('citizen.2fa.validate', absolute: false) }}">
             @csrf
             <div>
                 <label class="block text-sm font-medium text-gray-700">Authentication Code</label>
@@ -25,7 +25,17 @@
             </button>
         </form>
 
-        <form method="POST" action="{{ route('logout') }}" class="mt-4">
+        @if (! empty($allow2faSkip))
+            <form method="POST" action="{{ route('citizen.2fa.skip-testing', absolute: false) }}" class="mt-6 border-t border-gray-200 pt-4">
+                @csrf
+                <p class="text-xs text-amber-700 mb-2">Testing only: bypass 2FA when <code class="bg-amber-50 px-1 rounded">CITIZEN_ALLOW_2FA_SKIP=true</code> is set.</p>
+                <button type="submit" class="text-sm text-gray-600 hover:text-gray-900 underline">
+                    Skip 2FA (dev / QA)
+                </button>
+            </form>
+        @endif
+
+        <form method="POST" action="{{ route('logout', absolute: false) }}" class="mt-4">
             @csrf
             <button type="submit" class="text-sm text-gray-500 hover:underline">
                 Logout and go back

@@ -11,20 +11,20 @@ class EnsureMunicipalityRole
     public function handle(Request $request, Closure $next)
     {
         if (! Auth::check()) {
-            return redirect()->route('login');
+            return redirect()->route('municipality.login');
         }
 
         $user = Auth::user();
 
         if ($user->role !== 'municipality') {
             Auth::logout();
-            return redirect()->route('login')
+            return redirect()->route('municipality.login')
                 ->withErrors(['email' => 'Access denied.']);
         }
 
         if (! $user->is_active) {
             Auth::logout();
-            return redirect()->route('login')
+            return redirect()->route('municipality.login')
                 ->withErrors(['email' => 'Account deactivated. Please contact your administrator.']);
         }
 

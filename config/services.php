@@ -48,4 +48,11 @@ return [
 
 'ocr_space_api_key' => env('OCR_SPACE_API_KEY'),
 
+    // 3-letter code: eng, ara, auto (auto = Engine 2/3 language detection — best for mixed ID cards)
+    'ocr_space_language' => env('OCR_SPACE_LANGUAGE', 'auto'),
+
+    // Optional: English hints under Arabic ID fields (set false to skip external translation calls)
+    'libretranslate_enabled' => filter_var(env('LIBRETRANSLATE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    'libretranslate_url' => env('LIBRETRANSLATE_URL', 'https://libretranslate.com'),
+
 ];

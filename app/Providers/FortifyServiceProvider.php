@@ -42,7 +42,7 @@ class FortifyServiceProvider extends ServiceProvider
             return $user;
         });
         Fortify::redirects('login', '/municipality/dashboard');
-        Fortify::redirects('logout', '/login');
+        Fortify::redirects('logout', '/citizen/login');
         // Custom Blade views
         Fortify::loginView(fn () => view('municipality.auth.login'));
         Fortify::twoFactorChallengeView(fn () => view('municipality.auth.two-factor-challenge'));

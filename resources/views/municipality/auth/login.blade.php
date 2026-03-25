@@ -77,7 +77,17 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('login') }}">
+            @if(! empty($otherPortalUser))
+                <div class="alert alert-info small" role="alert">
+                    <p class="mb-2">You still have an active <strong>{{ $otherPortalUser->role }}</strong> session (e.g. citizen 2FA in progress). You can sign in here with a municipality account (that will end the current session), or sign out first.</p>
+                    <form method="POST" action="{{ route('logout', absolute: false) }}" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Sign out of {{ $otherPortalUser->role }} account</button>
+                    </form>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('municipality.login.store', absolute: false) }}">
                 @csrf
 
                 <div class="mb-3">

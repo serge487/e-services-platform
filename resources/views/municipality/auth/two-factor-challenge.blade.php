@@ -67,7 +67,7 @@
                 <p class="text-muted small mb-3">
                     Open your authenticator app (Google Authenticator, Authy, etc.) and enter the 6-digit code.
                 </p>
-                <form method="POST" action="{{ route('two-factor.login') }}">
+                <form method="POST" action="{{ route('two-factor.login', absolute: false) }}">
                     @csrf
                     <div class="mb-3">
                         <label for="code" class="form-label fw-semibold">Authentication Code</label>
@@ -101,7 +101,7 @@
                 <p class="text-muted small mb-3">
                     Enter one of your emergency recovery codes.
                 </p>
-                <form method="POST" action="{{ route('two-factor.login') }}">
+                <form method="POST" action="{{ route('two-factor.login', absolute: false) }}">
                     @csrf
                     <div class="mb-3">
                         <label for="recovery_code" class="form-label fw-semibold">Recovery Code</label>
