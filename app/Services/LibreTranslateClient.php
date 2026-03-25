@@ -54,7 +54,7 @@ class LibreTranslateClient
             return $parsed;
         }
 
-        foreach (['name', 'father_name', 'place_of_birth'] as $key) {
+        foreach (['name', 'father_name', 'place_of_birth', 'mother_name', 'grandfather_name'] as $key) {
             $val = $parsed[$key] ?? null;
             if (! is_string($val) || trim($val) === '') {
                 continue;

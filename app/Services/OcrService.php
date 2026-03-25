@@ -19,7 +19,7 @@ class OcrService
     /**
      * Run OCR on an image already stored on the public disk (absolute path).
      */
-    public function extractFromImagePath(string $absolutePath, string $originalFilename): array
+    public function extractFromImagePath(string $absolutePath, string $originalFilename, bool $withEnglishHints = true): array
     {
         if (! is_readable($absolutePath)) {
             return $this->emptyResult('unreadable_file');
@@ -65,13 +65,115 @@ class OcrService
             : '';
 
         $parsed = $this->parseIdText($extractedText);
-        $parsed = app(LibreTranslateClient::class)->addEnglishHintFields($parsed);
         $parsed['_meta'] = [
             'source'        => 'ocr_space',
             'raw_non_empty' => trim($extractedText) !== '',
         ];
 
+        if ($withEnglishHints) {
+            $parsed = app(LibreTranslateClient::class)->addEnglishHintFields($parsed);
+        }
+
         return $parsed;
+    }
+
+    /**
+     * Run OCR on front + back, merge parsed fields (back fills gaps), single English-hint pass.
+     *
+     * @return array<string, mixed>
+     */
+    public function extractFromFrontAndBackPaths(
+        string $frontAbsPath,
+        string $frontFilename,
+        string $backAbsPath,
+        string $backFilename,
+    ): array {
+        $front = $this->extractFromImagePath($frontAbsPath, $frontFilename, withEnglishHints: false);
+        $back = $this->extractFromImagePath($backAbsPath, $backFilename, withEnglishHints: false);
+
+        $merged = $this->mergeFrontAndBackParsed($front, $back);
+        $merged['raw_text_front'] = (string) ($front['raw_text'] ?? '');
+        $merged['raw_text_back'] = (string) ($back['raw_text'] ?? '');
+
+        return app(LibreTranslateClient::class)->addEnglishHintFields($merged);
+    }
+
+    /**
+     * @param  array<string, mixed>  $front
+     * @param  array<string, mixed>  $back
+     * @return array<string, mixed>
+     */
+    private function mergeFrontAndBackParsed(array $front, array $back): array
+    {
+        $fMeta = $front['_meta'] ?? [];
+        $bMeta = $back['_meta'] ?? [];
+        unset($front['_meta'], $back['_meta']);
+
+        $keys = [
+            'name', 'id_number', 'dob', 'place_of_birth', 'father_name',
+            'mother_name', 'grandfather_name', 'gender', 'blood_type',
+            'registry_number', 'issue_date', 'expiry_date',
+        ];
+        $hintKeys = ['name', 'father_name', 'place_of_birth', 'mother_name', 'grandfather_name'];
+
+        $isEmpty = static function ($v): bool {
+            if ($v === null) {
+                return true;
+            }
+
+            return is_string($v) && trim($v) === '';
+        };
+
+        $merged = [];
+        foreach ($keys as $k) {
+            $fv = $front[$k] ?? null;
+            $bv = $back[$k] ?? null;
+            $merged[$k] = ! $isEmpty($fv) ? $fv : (! $isEmpty($bv) ? $bv : null);
+        }
+
+        foreach ($hintKeys as $k) {
+            $hek = $k.'_en';
+            $fv = $front[$hek] ?? null;
+            $bv = $back[$hek] ?? null;
+            $merged[$hek] = ! $isEmpty($fv) ? $fv : (! $isEmpty($bv) ? $bv : null);
+        }
+
+        $rawF = trim((string) ($front['raw_text'] ?? ''));
+        $rawB = trim((string) ($back['raw_text'] ?? ''));
+        $merged['raw_text'] = $rawF === '' && $rawB === ''
+            ? ''
+            : ($rawF === '' ? $rawB : ($rawB === '' ? $rawF : $rawF."\n\n--- BACK ---\n".$rawB));
+
+        $merged['_meta'] = [
+            'source'        => (($fMeta['source'] ?? '') === 'ocr_space' || ($bMeta['source'] ?? '') === 'ocr_space')
+                ? 'ocr_space'
+                : 'none',
+            'reason'        => $this->mergeOcrMetaReason($fMeta, $bMeta),
+            'api_message'   => $fMeta['api_message'] ?? $bMeta['api_message'] ?? null,
+            'raw_non_empty' => ($fMeta['raw_non_empty'] ?? false) || ($bMeta['raw_non_empty'] ?? false),
+            'front_ok'      => ($fMeta['raw_non_empty'] ?? false) || $rawF !== '',
+            'back_ok'       => ($bMeta['raw_non_empty'] ?? false) || $rawB !== '',
+        ];
+
+        return $merged;
+    }
+
+    /**
+     * @param  array<string, mixed>  $fMeta
+     * @param  array<string, mixed>  $bMeta
+     */
+    private function mergeOcrMetaReason(array $fMeta, array $bMeta): ?string
+    {
+        $rf = $fMeta['reason'] ?? null;
+        $rb = $bMeta['reason'] ?? null;
+
+        foreach (['missing_api_key', 'api_error', 'http_error', 'unreadable_file'] as $r) {
+            if ($rf === $r || $rb === $r) {
+                return $r;
+            }
+        }
+
+        return null;
     }
 
     private function emptyResult(string $reason, ?string $apiMessage = null): array
@@ -125,12 +227,19 @@ class OcrService
     private function parseIdText(string $text): array
     {
         $result = [
-            'raw_text'        => $text,
-            'name'            => null,
-            'id_number'       => null,
-            'dob'             => null,
-            'place_of_birth'  => null,
-            'father_name'     => null,
+            'raw_text'          => $text,
+            'name'              => null,
+            'id_number'         => null,
+            'dob'               => null,
+            'place_of_birth'    => null,
+            'father_name'       => null,
+            'mother_name'       => null,
+            'grandfather_name'  => null,
+            'gender'            => null,
+            'blood_type'        => null,
+            'registry_number'   => null,
+            'issue_date'        => null,
+            'expiry_date'       => null,
         ];
 
         $lines = array_values(array_filter(array_map('trim', explode("\n", $text))));
@@ -170,6 +279,55 @@ class OcrService
                 }
             }
 
+            if (preg_match('/^(mother|nom\s*de\s*la\s*m[eè]re|mother\'?s\s*name)\s*[:\-]?\s*(.+)$/iu', $norm, $m)) {
+                $val = trim($m[2] ?? '');
+                if ($val !== '' && mb_strlen($val) > 1) {
+                    $result['mother_name'] = $this->titleLine($val);
+                }
+            }
+
+            if (preg_match('/^(grandfather|grand\s*father|nom\s*du\s*grand[\s\-]?p[eè]re)\s*[:\-]?\s*(.+)$/iu', $norm, $m)) {
+                $val = trim($m[2] ?? '');
+                if ($val !== '' && mb_strlen($val) > 1) {
+                    $result['grandfather_name'] = $this->titleLine($val);
+                }
+            }
+
+            if (preg_match('/^(gender|sex|sexe)\s*[:\-]?\s*(.+)$/iu', $norm, $m)) {
+                $val = trim($m[2] ?? '');
+                if ($val !== '' && mb_strlen($val) < 40) {
+                    $result['gender'] = $this->titleLine($val);
+                }
+            }
+
+            if (preg_match('/^(blood|group)\s*(type)?\s*[:\-]?\s*(.+)$/iu', $norm, $m)) {
+                $val = trim($m[3] ?? $m[2] ?? '');
+                if ($val !== '' && mb_strlen($val) < 20) {
+                    $result['blood_type'] = strtoupper(trim($val));
+                }
+            }
+
+            if (preg_match('/^(registry|record|رقم)\s*(no\.?|number|#)?\s*[:\-]?\s*(.+)$/iu', $norm, $m)) {
+                $val = preg_replace('/\s+/', '', trim($m[3] ?? ''));
+                if ($val !== '' && preg_match('/^[\d\-]+$/', $val)) {
+                    $result['registry_number'] = $val;
+                }
+            }
+
+            if ($result['issue_date'] === null && preg_match('/(issue(d)?|emis(ion)?|إصدار)\s*(date)?\s*[:\-]?\s*(\d{2,4}[\/\-\.]\d{2}[\/\-\.]\d{2,4})/iu', $norm, $m)) {
+                $parsed = $this->normalizeDob(str_replace(['.', '-'], '/', $m[4] ?? ''));
+                if ($parsed) {
+                    $result['issue_date'] = $parsed;
+                }
+            }
+
+            if ($result['expiry_date'] === null && preg_match('/(expir(y|es)|valid\s*until|انتهاء)\s*(date)?\s*[:\-]?\s*(\d{2,4}[\/\-\.]\d{2}[\/\-\.]\d{2,4})/iu', $norm, $m)) {
+                $parsed = $this->normalizeDob(str_replace(['.', '-'], '/', $m[4] ?? ''));
+                if ($parsed) {
+                    $result['expiry_date'] = $parsed;
+                }
+            }
+
             if ($result['name'] === null && preg_match('/^[A-Z][A-Z\s\-\']{4,}$/u', $line) && ! preg_match('/^\d/', $line)) {
                 $result['name'] = $this->titleLine($line);
             }
@@ -186,7 +344,11 @@ class OcrService
 
         if (preg_match('/\p{Arabic}/u', $text)) {
             $ar = $this->parseArabicLebaneseIdCard($text);
-            foreach (['name', 'id_number', 'dob', 'place_of_birth', 'father_name'] as $k) {
+            foreach ([
+                'name', 'id_number', 'dob', 'place_of_birth', 'father_name',
+                'mother_name', 'grandfather_name', 'gender', 'blood_type',
+                'registry_number', 'issue_date', 'expiry_date',
+            ] as $k) {
                 if (! empty($ar[$k])) {
                     $result[$k] = $ar[$k];
                 }
@@ -202,11 +364,18 @@ class OcrService
     private function parseArabicLebaneseIdCard(string $text): array
     {
         $out = [
-            'name'            => null,
-            'id_number'       => null,
-            'dob'             => null,
-            'place_of_birth'  => null,
-            'father_name'     => null,
+            'name'              => null,
+            'id_number'         => null,
+            'dob'               => null,
+            'place_of_birth'    => null,
+            'father_name'       => null,
+            'mother_name'       => null,
+            'grandfather_name'  => null,
+            'gender'            => null,
+            'blood_type'        => null,
+            'registry_number'   => null,
+            'issue_date'        => null,
+            'expiry_date'       => null,
         ];
 
         $given = null;
@@ -234,6 +403,40 @@ class OcrService
 
         if (preg_match('/محل\s*الولادة\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
             $out['place_of_birth'] = trim($m[1]);
+        }
+
+        if (preg_match('/اسم\s*(?:الأم|الام)\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $out['mother_name'] = trim($m[1]);
+        }
+
+        if (preg_match('/اسم\s*الجد\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $out['grandfather_name'] = trim($m[1]);
+        }
+
+        if (preg_match('/الجنس\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $out['gender'] = trim($m[1]);
+        }
+
+        if (preg_match('/فصيلة\s*الدم\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $out['blood_type'] = trim($m[1]);
+        }
+
+        if (preg_match('/رقم\s*السجل\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $out['registry_number'] = trim(preg_replace('/\s+/', '', $this->normalizeEasternArabicDigits(trim($m[1]))));
+        }
+
+        if (preg_match('/تاريخ\s*الإصدار\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $parsed = $this->normalizeDob($this->normalizeEasternArabicDigits(trim($m[1])));
+            if ($parsed) {
+                $out['issue_date'] = $parsed;
+            }
+        }
+
+        if (preg_match('/تاريخ\s*(?:الانتهاء|الإنتهاء)\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {
+            $parsed = $this->normalizeDob($this->normalizeEasternArabicDigits(trim($m[1])));
+            if ($parsed) {
+                $out['expiry_date'] = $parsed;
+            }
         }
 
         if (preg_match('/تاريخ\s*الولادة\s*[:：]\s*(.+?)(?=\n|$|\r)/u', $text, $m)) {

@@ -41,7 +41,8 @@ class CitizenIdentityVerificationController extends Controller
     public function extract(Request $request): RedirectResponse
     {
         $request->validate([
-            'id_photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'id_photo_front' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'id_photo_back'  => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
         ]);
 
         $user = $request->user();
@@ -50,12 +51,17 @@ class CitizenIdentityVerificationController extends Controller
             return redirect()->route('citizen.dashboard');
         }
 
-        $path = $request->file('id_photo')->store('id_documents', 'public');
-        $absolutePath = Storage::disk('public')->path($path);
+        $pathFront = $request->file('id_photo_front')->store('id_documents', 'public');
+        $pathBack = $request->file('id_photo_back')->store('id_documents', 'public');
 
-        $ocrData = $this->ocrService->extractFromImagePath(
-            $absolutePath,
-            $request->file('id_photo')->getClientOriginalName()
+        $absoluteFront = Storage::disk('public')->path($pathFront);
+        $absoluteBack = Storage::disk('public')->path($pathBack);
+
+        $ocrData = $this->ocrService->extractFromFrontAndBackPaths(
+            $absoluteFront,
+            $request->file('id_photo_front')->getClientOriginalName(),
+            $absoluteBack,
+            $request->file('id_photo_back')->getClientOriginalName(),
         );
 
         $meta = $ocrData['_meta'] ?? [];
@@ -63,20 +69,34 @@ class CitizenIdentityVerificationController extends Controller
             unset($ocrData['_meta']);
         }
 
-        $prefill = array_merge($ocrData, ['_id_card_path' => $path]);
+        $prefill = array_merge($ocrData, [
+            '_id_card_front_path' => $pathFront,
+            '_id_card_back_path'  => $pathBack,
+        ]);
         $request->session()->put('identity_ocr_prefill', $prefill);
 
         CitizenIdentityProfile::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'id_document_path'       => $path,
-                'ocr_raw_text'           => $ocrData['raw_text'] !== '' ? $ocrData['raw_text'] : null,
+                'id_document_front_path' => $pathFront,
+                'id_document_back_path'  => $pathBack,
+                'id_document_path'       => $pathFront,
+                'ocr_raw_text'           => ($ocrData['raw_text'] ?? '') !== '' ? $ocrData['raw_text'] : null,
+                'ocr_raw_text_front'     => ($ocrData['raw_text_front'] ?? '') !== '' ? $ocrData['raw_text_front'] : null,
+                'ocr_raw_text_back'      => ($ocrData['raw_text_back'] ?? '') !== '' ? $ocrData['raw_text_back'] : null,
                 'extracted_at'           => now(),
                 'full_name'              => $ocrData['name'] ?? null,
                 'national_id_number'     => $ocrData['id_number'] ?? null,
                 'date_of_birth'          => $ocrData['dob'] ?? null,
                 'place_of_birth'         => $ocrData['place_of_birth'] ?? null,
                 'father_name'            => $ocrData['father_name'] ?? null,
+                'mother_name'            => $ocrData['mother_name'] ?? null,
+                'grandfather_name'       => $ocrData['grandfather_name'] ?? null,
+                'gender'                 => $ocrData['gender'] ?? null,
+                'blood_type'             => $ocrData['blood_type'] ?? null,
+                'registry_number'        => $ocrData['registry_number'] ?? null,
+                'id_issue_date'          => $ocrData['issue_date'] ?? null,
+                'id_expiry_date'         => $ocrData['expiry_date'] ?? null,
                 'confirmed_at'           => null,
             ]
         );
@@ -85,7 +105,10 @@ class CitizenIdentityVerificationController extends Controller
         $nameLen = strlen(trim((string) ($ocrData['name'] ?? '')));
         $hasParsed = ($ocrData['id_number'] ?? '') !== ''
             || ($ocrData['dob'] ?? '') !== ''
-            || $nameLen >= 3;
+            || $nameLen >= 3
+            || ($ocrData['father_name'] ?? '') !== ''
+            || ($ocrData['mother_name'] ?? '') !== ''
+            || ($ocrData['place_of_birth'] ?? '') !== '';
 
         $reason = $meta['reason'] ?? null;
         $redirect = redirect()->route('citizen.identity-verification.show');
@@ -93,7 +116,7 @@ class CitizenIdentityVerificationController extends Controller
         if (($meta['source'] ?? '') === 'none' && $reason === 'missing_api_key') {
             return $redirect->with(
                 'warning',
-                'OCR is not configured. Add OCR_SPACE_API_KEY to your .env file, or type your ID details manually. Your photo was saved.'
+                'OCR is not configured. Add OCR_SPACE_API_KEY to your .env file, or type your ID details manually. Your photos were saved.'
             );
         }
 
@@ -104,25 +127,40 @@ class CitizenIdentityVerificationController extends Controller
 
             return $redirect->with(
                 'warning',
-                'The OCR service could not read this image.'.$hint.' Try a clearer, well-lit photo, or fill the form manually.'
+                'The OCR service could not read one or both images.'.$hint.' Try clearer photos, or fill the form manually.'
             );
         }
 
         if ($rawLen === 0 && ! $hasParsed) {
             return $redirect->with(
                 'warning',
-                'No text was detected. Center the whole card, avoid glare and blur, or enter your details manually.'
+                'No text was detected on the front or back. Retake well-lit, straight photos, or enter details manually.'
             );
         }
 
         if ($rawLen > 0 && ! $hasParsed) {
             return $redirect->with(
                 'warning',
-                'Some text was read but fields were not filled automatically. Expand “Raw OCR text” below and type values into the form.'
+                'Some text was read but main fields were not filled automatically. Use “Raw OCR text” below and complete the form.'
             );
         }
 
-        return $redirect->with('status', 'Details were suggested from your ID—please review and correct them before saving.');
+        $frontOk = $meta['front_ok'] ?? false;
+        $backOk = $meta['back_ok'] ?? false;
+        if ($frontOk && ! $backOk) {
+            return $redirect->with(
+                'warning',
+                'Front read OK; back had little or no text. Check the back photo or type back-side fields manually.'
+            );
+        }
+        if (! $frontOk && $backOk) {
+            return $redirect->with(
+                'warning',
+                'Back read OK; front had little or no text. Check the front photo or type front-side fields manually.'
+            );
+        }
+
+        return $redirect->with('status', 'Details were suggested from your ID—please review front and back fields before saving.');
     }
 
     public function confirm(Request $request): RedirectResponse
@@ -134,43 +172,65 @@ class CitizenIdentityVerificationController extends Controller
         }
 
         $prefill = session('identity_ocr_prefill', []);
-        $idCardPath = $prefill['_id_card_path'] ?? $user->id_card_path;
+        $idCardFront = $prefill['_id_card_front_path'] ?? null;
+        $idCardBack = $prefill['_id_card_back_path'] ?? null;
 
         $validated = $request->validate([
-            'name'            => ['required', 'string', 'max:255'],
-            'id_number'       => ['required', 'string', 'max:32'],
-            'dob'             => ['required', 'date'],
-            'place_of_birth'  => ['nullable', 'string', 'max:255'],
-            'father_name'     => ['nullable', 'string', 'max:255'],
+            'name'               => ['required', 'string', 'max:255'],
+            'id_number'          => ['required', 'string', 'max:32'],
+            'dob'                => ['required', 'date'],
+            'place_of_birth'     => ['nullable', 'string', 'max:255'],
+            'father_name'        => ['nullable', 'string', 'max:255'],
+            'mother_name'        => ['nullable', 'string', 'max:255'],
+            'grandfather_name'   => ['nullable', 'string', 'max:255'],
+            'gender'             => ['nullable', 'string', 'max:64'],
+            'blood_type'         => ['nullable', 'string', 'max:16'],
+            'registry_number'    => ['nullable', 'string', 'max:64'],
+            'issue_date'         => ['nullable', 'date'],
+            'expiry_date'        => ['nullable', 'date'],
         ]);
 
-        if (! $idCardPath) {
-            return back()->withErrors(['id_photo' => 'Please upload a photo of your ID first.']);
+        if (! $idCardFront || ! $idCardBack) {
+            return back()->withErrors(['id_photo_front' => 'Please upload clear photos of both the front and back of your ID, then run OCR.']);
         }
 
         $user->update([
-            'name'                  => $validated['name'],
-            'id_number'             => $validated['id_number'],
-            'dob'                   => $validated['dob'],
-            'place_of_birth'        => $validated['place_of_birth'] ?? null,
-            'father_name'           => $validated['father_name'] ?? null,
-            'id_card_path'          => $idCardPath,
-            'identity_verified_at'  => now(),
+            'name'                 => $validated['name'],
+            'id_number'            => $validated['id_number'],
+            'dob'                  => $validated['dob'],
+            'place_of_birth'       => $validated['place_of_birth'] ?? null,
+            'father_name'          => $validated['father_name'] ?? null,
+            'id_card_path'         => $idCardFront,
+            'id_card_back_path'    => $idCardBack,
+            'identity_verified_at' => now(),
         ]);
 
-        $rawOcr = $prefill['raw_text'] ?? null;
+        $rawCombined = $prefill['raw_text'] ?? null;
+        $rawFront = $prefill['raw_text_front'] ?? null;
+        $rawBack = $prefill['raw_text_back'] ?? null;
 
         CitizenIdentityProfile::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'full_name'            => $validated['name'],
-                'national_id_number'   => $validated['id_number'],
-                'date_of_birth'        => $validated['dob'],
-                'place_of_birth'       => $validated['place_of_birth'] ?? null,
-                'father_name'          => $validated['father_name'] ?? null,
-                'id_document_path'     => $idCardPath,
-                'ocr_raw_text'         => $rawOcr,
-                'confirmed_at'         => now(),
+                'full_name'              => $validated['name'],
+                'national_id_number'     => $validated['id_number'],
+                'date_of_birth'          => $validated['dob'],
+                'place_of_birth'         => $validated['place_of_birth'] ?? null,
+                'father_name'            => $validated['father_name'] ?? null,
+                'mother_name'            => $validated['mother_name'] ?? null,
+                'grandfather_name'       => $validated['grandfather_name'] ?? null,
+                'gender'                 => $validated['gender'] ?? null,
+                'blood_type'             => $validated['blood_type'] ?? null,
+                'registry_number'        => $validated['registry_number'] ?? null,
+                'id_issue_date'          => $validated['issue_date'] ?? null,
+                'id_expiry_date'         => $validated['expiry_date'] ?? null,
+                'id_document_front_path' => $idCardFront,
+                'id_document_back_path'  => $idCardBack,
+                'id_document_path'       => $idCardFront,
+                'ocr_raw_text'           => $rawCombined,
+                'ocr_raw_text_front'     => $rawFront,
+                'ocr_raw_text_back'      => $rawBack,
+                'confirmed_at'           => now(),
             ]
         );
 

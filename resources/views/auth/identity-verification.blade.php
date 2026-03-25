@@ -9,7 +9,7 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen py-10">
     <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-lg mx-4">
         <h1 class="text-2xl font-bold text-gray-800 mb-2">Lebanese national ID</h1>
-        <p class="text-gray-500 mb-6">You are signed in as <span class="font-medium text-gray-700">{{ auth()->user()->email }}</span>. Upload a clear photo of your Lebanese ID card, then run OCR. Extracted details appear below—edit if needed, then save to continue.</p>
+        <p class="text-gray-500 mb-6">You are signed in as <span class="font-medium text-gray-700">{{ auth()->user()->email }}</span>. Upload <strong>both sides</strong> of your Lebanese ID (front and back), run OCR, then review and save every field that applies.</p>
 
         @if (session('status'))
             <div class="mb-4 text-sm text-green-600">{{ session('status') }}</div>
@@ -19,20 +19,31 @@
         @endif
 
         <div class="border border-gray-200 rounded-lg p-4 mb-8">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3">1. Upload ID photo</h2>
+            <h2 class="text-sm font-semibold text-gray-700 mb-3">1. Upload front and back</h2>
             <form method="POST" action="{{ route('citizen.identity-verification.extract', absolute: false) }}" enctype="multipart/form-data">
                 @csrf
-                <input type="file" name="id_photo" accept="image/jpeg,image/png,image/jpg" required
-                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                @error('id_photo')
-                    <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
-                @enderror
-                <button type="submit" class="mt-4 w-full bg-gray-800 hover:bg-gray-900 text-white py-2 px-4 rounded-md text-sm font-medium">
-                    Extract with OCR
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Front of card (photo side)</label>
+                    <input type="file" name="id_photo_front" accept="image/jpeg,image/png,image/jpg" required
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                    @error('id_photo_front')
+                        <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div class="mb-3">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Back of card</label>
+                    <input type="file" name="id_photo_back" accept="image/jpeg,image/png,image/jpg" required
+                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+                    @error('id_photo_back')
+                        <p class="text-red-500 text-sm mt-2">{{ $message }}</p>
+                    @enderror
+                </div>
+                <button type="submit" class="mt-2 w-full bg-gray-800 hover:bg-gray-900 text-white py-2 px-4 rounded-md text-sm font-medium">
+                    Extract with OCR (front + back)
                 </button>
             </form>
             @if (empty(config('services.ocr_space_api_key')))
-                <p class="text-amber-600 text-xs mt-2">OCR is not configured (<code class="text-xs">OCR_SPACE_API_KEY</code>). Upload will still store your photo; fill the form manually.</p>
+                <p class="text-amber-600 text-xs mt-2">OCR is not configured (<code class="text-xs">OCR_SPACE_API_KEY</code>). Uploads are still stored; fill the form manually.</p>
             @endif
         </div>
 
@@ -40,8 +51,20 @@
             $p = $prefill ?? [];
         @endphp
         <div class="border border-gray-200 rounded-lg p-4">
-            <h2 class="text-sm font-semibold text-gray-700 mb-3">2. Confirm your details</h2>
-            @if (! empty(trim($p['raw_text'] ?? '')))
+            <h2 class="text-sm font-semibold text-gray-700 mb-3">2. Confirm all details</h2>
+            @if (! empty(trim($p['raw_text_front'] ?? '')))
+                <details class="mb-2 text-sm border border-gray-200 rounded-md p-3 bg-gray-50">
+                    <summary class="cursor-pointer font-medium text-gray-700">Raw OCR — front</summary>
+                    <pre class="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600 max-h-40 overflow-y-auto">{{ $p['raw_text_front'] }}</pre>
+                </details>
+            @endif
+            @if (! empty(trim($p['raw_text_back'] ?? '')))
+                <details class="mb-4 text-sm border border-gray-200 rounded-md p-3 bg-gray-50">
+                    <summary class="cursor-pointer font-medium text-gray-700">Raw OCR — back</summary>
+                    <pre class="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600 max-h-40 overflow-y-auto">{{ $p['raw_text_back'] }}</pre>
+                </details>
+            @endif
+            @if (! empty(trim($p['raw_text'] ?? '')) && empty($p['raw_text_front'] ?? '') && empty($p['raw_text_back'] ?? ''))
                 <details class="mb-4 text-sm border border-gray-200 rounded-md p-3 bg-gray-50">
                     <summary class="cursor-pointer font-medium text-gray-700">Raw OCR text</summary>
                     <pre class="mt-2 whitespace-pre-wrap break-words text-xs text-gray-600 max-h-48 overflow-y-auto">{{ $p['raw_text'] }}</pre>
@@ -81,13 +104,65 @@
                     @error('place_of_birth')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div class="mt-4">
-                    <label class="block text-sm font-medium text-gray-700">Father's name (if shown on ID)</label>
+                    <label class="block text-sm font-medium text-gray-700">Father's name</label>
                     <input type="text" name="father_name" value="{{ old('father_name', $p['father_name'] ?? '') }}" lang="ar" dir="auto"
                         class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
                     @if (! empty($p['father_name_en']))
                         <p class="mt-1 text-xs text-gray-500"><span class="font-medium text-gray-600">English (reference):</span> {{ $p['father_name_en'] }}</p>
                     @endif
                     @error('father_name')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Mother's name</label>
+                    <input type="text" name="mother_name" value="{{ old('mother_name', $p['mother_name'] ?? '') }}" lang="ar" dir="auto"
+                        class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                    @if (! empty($p['mother_name_en']))
+                        <p class="mt-1 text-xs text-gray-500"><span class="font-medium text-gray-600">English (reference):</span> {{ $p['mother_name_en'] }}</p>
+                    @endif
+                    @error('mother_name')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Grandfather's name (if on card)</label>
+                    <input type="text" name="grandfather_name" value="{{ old('grandfather_name', $p['grandfather_name'] ?? '') }}" lang="ar" dir="auto"
+                        class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                    @if (! empty($p['grandfather_name_en']))
+                        <p class="mt-1 text-xs text-gray-500"><span class="font-medium text-gray-600">English (reference):</span> {{ $p['grandfather_name_en'] }}</p>
+                    @endif
+                    @error('grandfather_name')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Gender</label>
+                        <input type="text" name="gender" value="{{ old('gender', $p['gender'] ?? '') }}"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        @error('gender')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Blood type</label>
+                        <input type="text" name="blood_type" value="{{ old('blood_type', $p['blood_type'] ?? '') }}"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        @error('blood_type')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700">Registry number (رقم السجل)</label>
+                    <input type="text" name="registry_number" value="{{ old('registry_number', $p['registry_number'] ?? '') }}"
+                        class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                    @error('registry_number')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Issue date</label>
+                        <input type="date" name="issue_date" value="{{ old('issue_date', $p['issue_date'] ?? '') }}"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        @error('issue_date')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Expiry date</label>
+                        <input type="date" name="expiry_date" value="{{ old('expiry_date', $p['expiry_date'] ?? '') }}"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        @error('expiry_date')<p class="text-red-500 text-sm mt-1">{{ $message }}</p>@enderror
+                    </div>
                 </div>
                 <button type="submit" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-md font-medium">
                     Save and continue to dashboard
