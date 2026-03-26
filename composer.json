@@ -10,7 +10,7 @@
         "filament/filament": "3.x",
         "laravel/fortify": "^1.36",
         "laravel/framework": "^12.0",
-        "laravel/socialite": "^5.25",
+        "laravel/socialite": "^5.26",
         "laravel/tinker": "^2.10.1",
         "pragmarx/google2fa-laravel": "^3.0",
         "pragmarx/google2fa-qrcode": "^3.0"
