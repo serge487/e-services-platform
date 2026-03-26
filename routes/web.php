@@ -9,13 +9,6 @@
 | • Municipality:  URLs under /municipality/... (separate login, staff dashboard).
 | • Admin:          Filament panel at /admin (role admin; routes live in Filament config).
 |
-| Important: APP_URL must match the browser origin (host + port), e.g. http://127.0.0.1:8000.
-| Relative links in Blade use route(..., absolute: false) so navigation still works if you switch host.
-| Session persistence on restart is normal if SESSION_DRIVER=database (or file). Forced redirects to
-| /citizen/identity-verification happen
-| when a citizen is logged in but identity_verified_at is null—unless
-| CITIZEN_SKIP_IDENTITY_VERIFICATION=true (local dev only).
-|
 */
 
 use App\Http\Controllers\Auth\CitizenIdentityVerificationController;
@@ -27,8 +20,12 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Municipality\OfficeProfileController;
+use App\Http\Controllers\Municipality\ServiceController;
+use App\Http\Controllers\Municipality\CategoryController;
+use App\Http\Controllers\Municipality\ServiceRequestController;
+
 // --------------------------------------------------------------------------
-// Home: sends guests to citizen login; logged-in users to the right area.
+// Home
 // --------------------------------------------------------------------------
 Route::get('/', function () {
     if (! Auth::check()) {
@@ -56,20 +53,19 @@ Route::get('/', function () {
     return redirect()->route('citizen.dashboard');
 });
 
-// Legacy paths → citizen portal
+// Legacy
 Route::permanentRedirect('/login', '/citizen/login');
 Route::permanentRedirect('/register', '/citizen/register');
 Route::permanentRedirect('/forgot-password', '/citizen/forgot-password');
 
 // --------------------------------------------------------------------------
-// Municipality — staff sign-in (not behind `guest`: a logged-in citizen mid-2FA
-// would otherwise be redirected to /citizen/dashboard and bounced back to 2FA).
+// Municipality login
 // --------------------------------------------------------------------------
 Route::get('municipality/login', [MunicipalitySessionController::class, 'create'])->name('municipality.login');
 Route::post('municipality/login', [MunicipalitySessionController::class, 'store'])->name('municipality.login.store');
 
 // --------------------------------------------------------------------------
-// Shared “Breeze” profile (auth users of any role can hit /profile).
+// Shared profile
 // --------------------------------------------------------------------------
 Route::get('/dashboard', function () {
     return redirect()->route('citizen.dashboard');
@@ -82,16 +78,13 @@ Route::middleware('auth')->group(function () {
 });
 
 // --------------------------------------------------------------------------
-// Citizen user — authenticated: ID verification, 2FA, then gated app pages.
-// (Guest citizen routes: register/login/password in routes/auth.php)
+// Citizen
 // --------------------------------------------------------------------------
 Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function () {
-    Route::get('/identity-verification', [CitizenIdentityVerificationController::class, 'show'])
-        ->name('identity-verification.show');
-    Route::post('/identity-verification/extract', [CitizenIdentityVerificationController::class, 'extract'])
-        ->name('identity-verification.extract');
-    Route::post('/identity-verification/confirm', [CitizenIdentityVerificationController::class, 'confirm'])
-        ->name('identity-verification.confirm');
+
+    Route::get('/identity-verification', [CitizenIdentityVerificationController::class, 'show'])->name('identity-verification.show');
+    Route::post('/identity-verification/extract', [CitizenIdentityVerificationController::class, 'extract'])->name('identity-verification.extract');
+    Route::post('/identity-verification/confirm', [CitizenIdentityVerificationController::class, 'confirm'])->name('identity-verification.confirm');
 
     Route::get('/2fa/setup', [TwoFactorController::class, 'setup'])->name('2fa.setup');
     Route::post('/2fa/enable', [TwoFactorController::class, 'enable'])->name('2fa.enable');
@@ -100,52 +93,74 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
     Route::post('/2fa/skip-testing', [TwoFactorController::class, 'skipForTesting'])->name('2fa.skip-testing');
 
     Route::middleware(['citizen.gate'])->group(function () {
+
         Route::get('/dashboard', function () {
             if (auth()->user()->role !== 'citizen') {
                 abort(403);
             }
-
             return view('citizen.dashboard');
         })->name('dashboard');
 
-        Route::get('/services', fn () => view('citizen.services'))->name('services');
-        Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
-        Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
+        // ── Categories ──────────────────────────────────────────────
+        Route::resource('categories', CategoryController::class)
+            ->only(['store', 'update', 'destroy'])
+            ->names('categories');
+
         Route::get('/notifications', fn () => view('citizen.notifications'))->name('notifications');
         Route::get('/history', fn () => view('citizen.history'))->name('history');
         Route::get('/profile', fn () => view('citizen.profile'))->name('profile');
     });
 });
 
+// Social
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialAuthController::class, 'redirect'])->name('social.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialAuthController::class, 'callback'])->name('social.callback');
 
 // --------------------------------------------------------------------------
-// Municipality user — authenticated + role municipality: staff area.
+// Municipality
 // --------------------------------------------------------------------------
 Route::prefix('municipality')
     ->middleware(['auth', 'municipality'])
     ->name('municipality.')
     ->group(function () {
+
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+        // 2FA
         Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])->name('2fa.setup');
         Route::post('/2fa/enable', [TwoFactorSetupController::class, 'enable'])->name('2fa.enable');
         Route::post('/2fa/confirm', [TwoFactorSetupController::class, 'confirm'])->name('2fa.confirm');
         Route::delete('/2fa/disable', [TwoFactorSetupController::class, 'disable'])->name('2fa.disable');
 
-       Route::get('/office-profile', [OfficeProfileController::class, 'index'])->name('office-profile');
+        // Office Profile
+        Route::get('/office-profile', [OfficeProfileController::class, 'index'])->name('office-profile');
         Route::get('/office-profile/{office}/edit', [OfficeProfileController::class, 'edit'])->name('office-profile.edit');
         Route::put('/office-profile/{office}', [OfficeProfileController::class, 'update'])->name('office-profile.update');
 
-        Route::get('/services', fn () => view('municipality.services'))->name('services');
-        Route::get('/requests', fn () => view('municipality.requests'))->name('requests');
+        // ── Categories (FIXED) ───────────────────────────────────────
+        Route::resource('categories', CategoryController::class)
+            ->only(['store', 'update', 'destroy'])
+            ->names('categories');
+
+        // Services
+        Route::get('/services', [ServiceController::class, 'index'])->name('services');
+        Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+        Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+        Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+        Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+        Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+        // Requests
+        Route::get('/requests', [ServiceRequestController::class, 'index'])->name('requests');
+        Route::get('/requests/{serviceRequest}', [ServiceRequestController::class, 'show'])->name('requests.show');
+        Route::patch('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.update-status');
+        Route::post('/requests/{serviceRequest}/documents', [ServiceRequestController::class, 'uploadDocument'])->name('requests.upload-document');
+        Route::delete('/requests/{serviceRequest}/documents/{document}', [ServiceRequestController::class, 'deleteDocument'])->name('requests.delete-document');
+
+        // Other
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         Route::get('/chat', fn () => view('municipality.chat'))->name('chat');
     });
 
-// --------------------------------------------------------------------------
-// Citizen guest routes (register, login, reset password) + logout, email verify
-// --------------------------------------------------------------------------
 require __DIR__.'/auth.php';
