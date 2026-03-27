@@ -26,7 +26,7 @@ use App\Http\Controllers\Municipality\TwoFactorSetupController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\Municipality\OfficeProfileController;
 // --------------------------------------------------------------------------
 // Home: sends guests to citizen login; logged-in users to the right area.
 // --------------------------------------------------------------------------
@@ -134,7 +134,10 @@ Route::prefix('municipality')
         Route::post('/2fa/confirm', [TwoFactorSetupController::class, 'confirm'])->name('2fa.confirm');
         Route::delete('/2fa/disable', [TwoFactorSetupController::class, 'disable'])->name('2fa.disable');
 
-        Route::get('/office-profile', fn () => view('municipality.office-profile'))->name('office-profile');
+       Route::get('/office-profile', [OfficeProfileController::class, 'index'])->name('office-profile');
+        Route::get('/office-profile/{office}/edit', [OfficeProfileController::class, 'edit'])->name('office-profile.edit');
+        Route::put('/office-profile/{office}', [OfficeProfileController::class, 'update'])->name('office-profile.update');
+
         Route::get('/services', fn () => view('municipality.services'))->name('services');
         Route::get('/requests', fn () => view('municipality.requests'))->name('requests');
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
