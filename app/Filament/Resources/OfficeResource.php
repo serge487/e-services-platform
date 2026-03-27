@@ -13,8 +13,11 @@ use Filament\Tables\Table;
 class OfficeResource extends Resource
 {
     protected static ?string $model = Office::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-building-office-2';
+
     protected static ?string $navigationGroup = 'Location Management';
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
@@ -28,7 +31,9 @@ class OfficeResource extends Resource
                             ->required()
                             ->searchable()
                             ->preload()
-                            ->label('Municipality'),
+                            ->label('Municipality')
+                            ->helperText('One government office per municipality.')
+                            ->unique(Office::class, 'municipality_id', ignoreRecord: true),
                         Forms\Components\TextInput::make('name')
                             ->required()
                             ->maxLength(255)
@@ -68,11 +73,11 @@ class OfficeResource extends Resource
                             ->addButtonLabel('Add Day')
                             ->columnSpanFull()
                             ->default([
-                                'Monday'    => '08:00 - 16:00',
-                                'Tuesday'   => '08:00 - 16:00',
+                                'Monday' => '08:00 - 16:00',
+                                'Tuesday' => '08:00 - 16:00',
                                 'Wednesday' => '08:00 - 16:00',
-                                'Thursday'  => '08:00 - 16:00',
-                                'Friday'    => '08:00 - 16:00',
+                                'Thursday' => '08:00 - 16:00',
+                                'Friday' => '08:00 - 16:00',
                             ]),
                     ]),
             ]);
@@ -136,9 +141,9 @@ class OfficeResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListOffices::route('/'),
+            'index' => Pages\ListOffices::route('/'),
             'create' => Pages\CreateOffice::route('/create'),
-            'edit'   => Pages\EditOffice::route('/{record}/edit'),
+            'edit' => Pages\EditOffice::route('/{record}/edit'),
         ];
     }
 }

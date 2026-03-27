@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Municipality;
 
 use App\Http\Controllers\Controller;
-use App\Models\Office;
 use App\Models\RequestDocument;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
@@ -28,18 +27,18 @@ class ServiceRequestController extends Controller
      */
     public function index(Request $request)
     {
-        $officeIds = $this->getMunicipalityOfficeIds();
+        $officeIds = $this->getAccessibleOfficeIds();
 
         $statusFilter = $request->query('status');
 
         $serviceRequests = ServiceRequest::with([
-                'citizen',
-                'service.office',
-                'service.category',
-                'requestDocuments',
-            ])
-            ->whereHas('service', fn($query) => $query->whereIn('office_id', $officeIds))
-            ->when($statusFilter, fn($query) => $query->where('status', $statusFilter))
+            'citizen',
+            'service.office',
+            'service.category',
+            'requestDocuments',
+        ])
+            ->whereHas('service', fn ($query) => $query->whereIn('office_id', $officeIds))
+            ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
             ->latest()
             ->paginate(20);
 
@@ -73,16 +72,16 @@ class ServiceRequestController extends Controller
         $this->authorizeRequestAccess($serviceRequest);
 
         $validated = $request->validate([
-            'status'       => ['required', 'string', 'in:' . implode(',', self::STATUSES)],
+            'status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
             'office_notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $serviceRequest->update([
-            'status'       => $validated['status'],
+            'status' => $validated['status'],
             'office_notes' => $validated['office_notes'] ?? $serviceRequest->office_notes,
         ]);
 
-        return back()->with('success', 'Request status updated to "' . $validated['status'] . '".');
+        return back()->with('success', 'Request status updated to "'.$validated['status'].'".');
     }
 
     /**
@@ -105,14 +104,14 @@ class ServiceRequestController extends Controller
 
         // Store under a per-request folder: official-responses/{request_id}/filename
         $filePath = $uploadedFile->store(
-            'official-responses/' . $serviceRequest->id,
+            'official-responses/'.$serviceRequest->id,
             'private'
         );
 
         RequestDocument::create([
             'service_request_id' => $serviceRequest->id,
-            'file_path'          => $filePath,
-            'type'               => 'official_response',
+            'file_path' => $filePath,
+            'type' => 'official_response',
         ]);
 
         return back()->with('success', 'Official response document uploaded successfully.');
@@ -147,15 +146,18 @@ class ServiceRequestController extends Controller
     /**
      * Get all office IDs belonging to the authenticated user's municipality.
      */
-    private function getMunicipalityOfficeIds(): array
+    /**
+     * @return list<int>
+     */
+    private function getAccessibleOfficeIds(): array
     {
-        $municipality = Auth::user()->municipality;
+        $ids = Auth::user()->accessibleOfficeIds();
 
-        if (! $municipality) {
-            abort(403, 'No municipality assigned to your account.');
+        if ($ids === []) {
+            abort(403, 'No office access is assigned to your account.');
         }
 
-        return $municipality->offices()->pluck('id')->toArray();
+        return $ids;
     }
 
     /**
@@ -163,9 +165,9 @@ class ServiceRequestController extends Controller
      */
     private function authorizeRequestAccess(ServiceRequest $serviceRequest): void
     {
-        $officeIds = $this->getMunicipalityOfficeIds();
+        $officeIds = $this->getAccessibleOfficeIds();
 
-        $belongs = in_array($serviceRequest->service->office_id, $officeIds);
+        $belongs = in_array($serviceRequest->service->office_id, $officeIds, true);
 
         if (! $belongs) {
             abort(403, 'You do not have permission to manage this request.');

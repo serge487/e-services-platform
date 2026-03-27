@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\Office;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -17,15 +18,17 @@ use Illuminate\Support\Facades\Hash;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-users';
+
     protected static ?string $navigationGroup = 'User Management';
+
     protected static ?int $navigationSort = 1;
 
-    
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereIn('role', ['municipality', 'citizen']);
+            ->whereIn('role', ['municipality', 'office_staff', 'citizen']);
     }
 
     public static function form(Form $form): Form
@@ -59,8 +62,9 @@ class UserResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('role')
                             ->options([
-                                'municipality' => 'Municipality User',
-                                'citizen'      => 'Citizen',
+                                'municipality' => 'Municipality User (full access)',
+                                'office_staff' => 'Office staff (desk: requests, appointments, chat)',
+                                'citizen' => 'Citizen',
                             ])
                             ->required()
                             ->live()
@@ -70,8 +74,39 @@ class UserResource extends Resource
                             ->searchable()
                             ->preload()
                             ->label('Municipality')
-                            ->visible(fn (Get $get) => $get('role') === 'municipality')
-                            ->required(fn (Get $get) => $get('role') === 'municipality'),
+                            ->helperText(fn (Get $get) => $get('role') === 'office_staff'
+                                ? 'Each municipality has one government office; desk staff are assigned to that office automatically.'
+                                : null)
+                            ->visible(fn (Get $get) => in_array($get('role'), ['municipality', 'office_staff'], true))
+                            ->required(fn (Get $get) => in_array($get('role'), ['municipality', 'office_staff'], true))
+                            ->live()
+                            ->rules([
+                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get): void {
+                                    if ($get('role') !== 'office_staff' || blank($value)) {
+                                        return;
+                                    }
+                                    if (! Office::query()->where('municipality_id', $value)->exists()) {
+                                        $fail('This municipality has no office yet. Create it under Offices first (one per municipality).');
+                                    }
+                                },
+                            ]),
+                        Forms\Components\Placeholder::make('resolved_office')
+                            ->label('Government office')
+                            ->content(function (Get $get): string {
+                                if ($get('role') !== 'office_staff') {
+                                    return '';
+                                }
+                                $municipalityId = $get('municipality_id');
+                                if (blank($municipalityId)) {
+                                    return 'Select a municipality.';
+                                }
+                                $name = Office::query()->where('municipality_id', $municipalityId)->value('name');
+
+                                return $name
+                                    ? (string) $name
+                                    : 'No office on file — add the office for this municipality before creating desk staff.';
+                            })
+                            ->visible(fn (Get $get) => $get('role') === 'office_staff'),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Account Active')
                             ->default(true)
@@ -96,12 +131,18 @@ class UserResource extends Resource
                 Tables\Columns\BadgeColumn::make('role')
                     ->colors([
                         'warning' => 'municipality',
+                        'info' => 'office_staff',
                         'success' => 'citizen',
                     ]),
                 Tables\Columns\TextColumn::make('municipality.name')
                     ->label('Municipality')
                     ->sortable()
                     ->placeholder('—'),
+                Tables\Columns\TextColumn::make('office.name')
+                    ->label('Office')
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->label('Active'),
@@ -114,7 +155,8 @@ class UserResource extends Resource
                 Tables\Filters\SelectFilter::make('role')
                     ->options([
                         'municipality' => 'Municipality User',
-                        'citizen'      => 'Citizen',
+                        'office_staff' => 'Office staff',
+                        'citizen' => 'Citizen',
                     ]),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Account Status')
@@ -132,9 +174,9 @@ class UserResource extends Resource
                     ->icon(fn (User $record) => $record->is_active ? 'heroicon-o-x-circle' : 'heroicon-o-check-circle')
                     ->color(fn (User $record) => $record->is_active ? 'danger' : 'success')
                     ->requiresConfirmation()
-                    ->action(fn (User $record) => $record->update(['is_active' => !$record->is_active])),
+                    ->action(fn (User $record) => $record->update(['is_active' => ! $record->is_active])),
                 Tables\Actions\DeleteAction::make()
-                    
+
                     ->hidden(fn (User $record) => $record->id === Auth::id()),
             ])
             ->bulkActions([
@@ -155,9 +197,9 @@ class UserResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListUsers::route('/'),
+            'index' => Pages\ListUsers::route('/'),
             'create' => Pages\CreateUser::route('/create'),
-            'edit'   => Pages\EditUser::route('/{record}/edit'),
+            'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
 }

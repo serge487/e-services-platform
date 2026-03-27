@@ -13,10 +13,13 @@
 @endif
 
 {{-- Page header --}}
-<div class="d-flex align-items-center justify-content-between mb-4">
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
         <h5 class="mb-0 fw-semibold">{{ $municipality->name }}</h5>
         <small class="text-muted">{{ $offices->count() }} office(s) registered</small>
+        @if(auth()->user()->isOfficeStaff())
+            <div class="small text-muted mt-1">View only — contact a municipality admin to update office details.</div>
+        @endif
     </div>
 </div>
 
@@ -38,10 +41,12 @@
                         <h6 class="mb-0 fw-semibold">
                             <i class="bi bi-building me-2 text-primary"></i>{{ $office->name }}
                         </h6>
-                        <a href="{{ route('municipality.office-profile.edit', $office) }}"
-                           class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </a>
+                        @if(auth()->user()->isMunicipalityAdmin())
+                            <a href="{{ route('municipality.office-profile.edit', $office) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </a>
+                        @endif
                     </div>
                     <div class="card-body">
 

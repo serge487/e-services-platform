@@ -26,11 +26,13 @@ class AuthenticatedSessionController extends Controller
 
         if ($user->role !== 'citizen') {
             Auth::logout();
+
             return redirect()->route('citizen.login')->withErrors(['email' => 'Unauthorized access.']);
         }
 
         if (! $user->is_active) {
             Auth::logout();
+
             return redirect()->route('citizen.login')->withErrors(['email' => 'Account deactivated.']);
         }
 
@@ -51,7 +53,7 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
-        $wasMunicipality = Auth::user()?->role === 'municipality';
+        $wasMunicipalityPortal = Auth::user()?->canAccessMunicipalityPortal() ?? false;
 
         Auth::guard('web')->logout();
 
@@ -59,7 +61,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return $wasMunicipality
+        return $wasMunicipalityPortal
             ? redirect()->route('municipality.login')
             : redirect()->route('citizen.login');
     }

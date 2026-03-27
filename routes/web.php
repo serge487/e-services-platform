@@ -6,23 +6,24 @@
 |--------------------------------------------------------------------------
 |
 | • Citizen users:   URLs under /citizen/... (login, register, ID verify, 2FA, app pages).
-| • Municipality:  URLs under /municipality/... (separate login, staff dashboard).
+| • Municipality:  URLs under /municipality/... (municipality admins + office desk staff).
 | • Admin:          Filament panel at /admin (role admin; routes live in Filament config).
 |
 */
 
 use App\Http\Controllers\Auth\CitizenIdentityVerificationController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\Municipality\CategoryController;
 use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\MunicipalitySessionController;
+use App\Http\Controllers\Municipality\OfficeProfileController;
+use App\Http\Controllers\Municipality\ServiceController;
+use App\Http\Controllers\Municipality\ServiceRequestController;
 use App\Http\Controllers\Municipality\TwoFactorSetupController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Municipality\OfficeProfileController;
-use App\Http\Controllers\Municipality\ServiceController;
-use App\Http\Controllers\Municipality\CategoryController;
-use App\Http\Controllers\Municipality\ServiceRequestController;
 
 // --------------------------------------------------------------------------
 // Home
@@ -35,6 +36,10 @@ Route::get('/', function () {
     $user = Auth::user();
 
     if ($user->role === 'municipality') {
+        return redirect()->route('municipality.dashboard');
+    }
+
+    if ($user->role === 'office_staff') {
         return redirect()->route('municipality.dashboard');
     }
 
@@ -98,6 +103,7 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
             if (auth()->user()->role !== 'citizen') {
                 abort(403);
             }
+
             return view('citizen.dashboard');
         })->name('dashboard');
 
@@ -119,54 +125,54 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
 });
 
 // Social
-Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialAuthController::class, 'redirect'])->name('social.redirect');
-Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialAuthController::class, 'callback'])->name('social.callback');
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
 
 // --------------------------------------------------------------------------
 // Municipality
 // --------------------------------------------------------------------------
 Route::prefix('municipality')
-    ->middleware(['auth', 'municipality'])
+    ->middleware(['auth', 'municipality.staff'])
     ->name('municipality.')
     ->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-        // 2FA
         Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])->name('2fa.setup');
         Route::post('/2fa/enable', [TwoFactorSetupController::class, 'enable'])->name('2fa.enable');
         Route::post('/2fa/confirm', [TwoFactorSetupController::class, 'confirm'])->name('2fa.confirm');
         Route::delete('/2fa/disable', [TwoFactorSetupController::class, 'disable'])->name('2fa.disable');
 
-        // Office Profile
         Route::get('/office-profile', [OfficeProfileController::class, 'index'])->name('office-profile');
-        Route::get('/office-profile/{office}/edit', [OfficeProfileController::class, 'edit'])->name('office-profile.edit');
-        Route::put('/office-profile/{office}', [OfficeProfileController::class, 'update'])->name('office-profile.update');
 
-        // ── Categories (FIXED) ───────────────────────────────────────
-        Route::resource('categories', CategoryController::class)
-            ->only(['store', 'update', 'destroy'])
-            ->names('categories');
-
-        // Services
         Route::get('/services', [ServiceController::class, 'index'])->name('services');
-        Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
-        Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
-        Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
-        Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
-        Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
 
-        // Requests
+        Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
+
         Route::get('/requests', [ServiceRequestController::class, 'index'])->name('requests');
         Route::get('/requests/{serviceRequest}', [ServiceRequestController::class, 'show'])->name('requests.show');
         Route::patch('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.update-status');
         Route::post('/requests/{serviceRequest}/documents', [ServiceRequestController::class, 'uploadDocument'])->name('requests.upload-document');
         Route::delete('/requests/{serviceRequest}/documents/{document}', [ServiceRequestController::class, 'deleteDocument'])->name('requests.delete-document');
 
-        // Other
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
-        Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         Route::get('/chat', fn () => view('municipality.chat'))->name('chat');
+
+        // Municipality administrators: change office profile, catalog (services / categories)
+        Route::middleware(['municipality.admin'])->group(function () {
+            Route::get('/office-profile/{office}/edit', [OfficeProfileController::class, 'edit'])->name('office-profile.edit');
+            Route::put('/office-profile/{office}', [OfficeProfileController::class, 'update'])->name('office-profile.update');
+
+            Route::resource('categories', CategoryController::class)
+                ->only(['store', 'update', 'destroy'])
+                ->names('categories');
+
+            Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+            Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+            Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+            Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+            Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+        });
     });
 
 require __DIR__.'/auth.php';

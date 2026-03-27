@@ -160,19 +160,19 @@
             </a>
 
             <a href="{{ route('municipality.office-profile', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.office-profile') ? 'active' : '' }}">
+               class="{{ request()->routeIs('municipality.office-profile*') ? 'active' : '' }}">
                 <i class="bi bi-building"></i> Office Profile
             </a>
 
             <div class="nav-label">Services</div>
 
             <a href="{{ route('municipality.services', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.services') ? 'active' : '' }}">
+               class="{{ request()->routeIs('municipality.services*') ? 'active' : '' }}">
                 <i class="bi bi-grid-3x3-gap"></i> Services
             </a>
 
             <a href="{{ route('municipality.requests', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.requests') ? 'active' : '' }}">
+               class="{{ request()->routeIs('municipality.requests*') ? 'active' : '' }}">
                 <i class="bi bi-file-earmark-text"></i> Requests
             </a>
 
@@ -217,7 +217,14 @@
     {{-- Main Content --}}
     <div id="main-content">
         <div id="topbar">
-            <h6 class="page-title">@yield('page-title', 'Dashboard')</h6>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h6 class="page-title mb-0">@yield('page-title', 'Dashboard')</h6>
+                @if(auth()->user()->isOfficeStaff())
+                    <span class="badge rounded-pill bg-secondary bg-opacity-25 text-secondary border" style="font-size:0.72rem; font-weight:600;">
+                        Desk staff · catalog read-only
+                    </span>
+                @endif
+            </div>
             <div class="topbar-actions">
                 <form method="POST" action="{{ route('logout', absolute: false) }}">
                     @csrf
@@ -229,7 +236,13 @@
         </div>
 
         <div class="page-content">
-            {{-- 2FA warning if not set up --}}
+            @if(session('warning'))
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert">
+                    <i class="bi bi-info-circle flex-shrink-0"></i>
+                    <span>{{ session('warning') }}</span>
+                </div>
+            @endif
+
             @if(! auth()->user()->two_factor_confirmed_at)
                 <div class="twofa-banner">
                     <span>⚠️ <strong>Two-factor authentication is not enabled.</strong> Secure your account now.</span>
