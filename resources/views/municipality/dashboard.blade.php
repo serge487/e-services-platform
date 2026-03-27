@@ -4,6 +4,14 @@
 @section('page-title', 'Dashboard')
 
 @section('content')
+@if(auth()->user()->isOfficeStaff())
+    <p class="text-muted small mb-4 mb-sm-3">
+        You use the same portal as municipality administrators. Office setup and the service catalog are <strong>view only</strong>;
+        your day-to-day work is under <a href="{{ route('municipality.requests', absolute: false) }}">Requests</a>,
+        <a href="{{ route('municipality.appointments', absolute: false) }}">Appointments</a>, and
+        <a href="{{ route('municipality.chat', absolute: false) }}">Chat</a>.
+    </p>
+@endif
 <div class="row g-4 mb-4">
     {{-- Stats cards --}}
     <div class="col-sm-6 col-xl-3">

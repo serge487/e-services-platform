@@ -17,7 +17,8 @@ class EnsureMunicipalityAdmin
         $user = Auth::user();
 
         if (! $user || ! $user->isMunicipalityAdmin()) {
-            return redirect()->route('municipality.requests');
+            return redirect()->route('municipality.dashboard')
+                ->with('warning', 'Desk staff can open all portal pages to review the catalog, but only municipality administrators can change office setup, services, or categories.');
         }
 
         return $next($request);

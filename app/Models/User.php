@@ -61,11 +61,10 @@ class User extends Authenticatable implements FilamentUser
     protected static function booted(): void
     {
         static::saving(function (User $user): void {
-            if ($user->role === 'office_staff' && $user->office_id) {
-                $municipalityId = Office::query()->whereKey($user->office_id)->value('municipality_id');
-                if ($municipalityId) {
-                    $user->municipality_id = $municipalityId;
-                }
+            if ($user->role === 'office_staff' && $user->municipality_id) {
+                $user->office_id = Office::query()
+                    ->where('municipality_id', $user->municipality_id)
+                    ->value('id');
             }
 
             if ($user->role !== 'office_staff') {

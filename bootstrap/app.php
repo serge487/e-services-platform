@@ -44,7 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($user?->role === 'office_staff') {
-                return '/municipality/requests';
+                return '/municipality/dashboard';
             }
 
             if ($user?->role === 'admin') {

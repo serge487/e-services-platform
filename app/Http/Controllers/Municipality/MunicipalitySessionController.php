@@ -15,9 +15,7 @@ class MunicipalitySessionController extends Controller
         $user = Auth::user();
 
         if ($user && $user->canAccessMunicipalityPortal()) {
-            return redirect()->route(
-                $user->isMunicipalityAdmin() ? 'municipality.dashboard' : 'municipality.requests'
-            );
+            return redirect()->route('municipality.dashboard');
         }
 
         return view('municipality.auth.login', [
@@ -36,9 +34,7 @@ class MunicipalitySessionController extends Controller
             $existing = Auth::user();
 
             if ($existing->canAccessMunicipalityPortal()) {
-                return redirect()->route(
-                    $existing->isMunicipalityAdmin() ? 'municipality.dashboard' : 'municipality.requests'
-                );
+                return redirect()->route('municipality.dashboard');
             }
 
             Auth::logout();
@@ -69,10 +65,6 @@ class MunicipalitySessionController extends Controller
             return back()->withErrors(['email' => 'Account deactivated. Please contact your administrator.'])->onlyInput('email');
         }
 
-        $home = $user->isMunicipalityAdmin()
-            ? route('municipality.dashboard')
-            : route('municipality.requests');
-
-        return redirect()->intended($home);
+        return redirect()->intended(route('municipality.dashboard'));
     }
 }

@@ -3,11 +3,11 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\Office;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -74,23 +74,39 @@ class UserResource extends Resource
                             ->searchable()
                             ->preload()
                             ->label('Municipality')
+                            ->helperText(fn (Get $get) => $get('role') === 'office_staff'
+                                ? 'Each municipality has one government office; desk staff are assigned to that office automatically.'
+                                : null)
                             ->visible(fn (Get $get) => in_array($get('role'), ['municipality', 'office_staff'], true))
                             ->required(fn (Get $get) => in_array($get('role'), ['municipality', 'office_staff'], true))
                             ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('office_id', null)),
-                        Forms\Components\Select::make('office_id')
-                            ->relationship(
-                                name: 'office',
-                                titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $query, Get $get) => $query
-                                    ->where('municipality_id', $get('municipality_id'))
-                                    ->orderBy('name'),
-                            )
-                            ->searchable()
-                            ->preload()
+                            ->rules([
+                                fn (Get $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get): void {
+                                    if ($get('role') !== 'office_staff' || blank($value)) {
+                                        return;
+                                    }
+                                    if (! Office::query()->where('municipality_id', $value)->exists()) {
+                                        $fail('This municipality has no office yet. Create it under Offices first (one per municipality).');
+                                    }
+                                },
+                            ]),
+                        Forms\Components\Placeholder::make('resolved_office')
                             ->label('Government office')
-                            ->visible(fn (Get $get) => $get('role') === 'office_staff')
-                            ->required(fn (Get $get) => $get('role') === 'office_staff'),
+                            ->content(function (Get $get): string {
+                                if ($get('role') !== 'office_staff') {
+                                    return '';
+                                }
+                                $municipalityId = $get('municipality_id');
+                                if (blank($municipalityId)) {
+                                    return 'Select a municipality.';
+                                }
+                                $name = Office::query()->where('municipality_id', $municipalityId)->value('name');
+
+                                return $name
+                                    ? (string) $name
+                                    : 'No office on file — add the office for this municipality before creating desk staff.';
+                            })
+                            ->visible(fn (Get $get) => $get('role') === 'office_staff'),
                         Forms\Components\Toggle::make('is_active')
                             ->label('Account Active')
                             ->default(true)

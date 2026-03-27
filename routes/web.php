@@ -40,7 +40,7 @@ Route::get('/', function () {
     }
 
     if ($user->role === 'office_staff') {
-        return redirect()->route('municipality.requests');
+        return redirect()->route('municipality.dashboard');
     }
 
     if ($user->role === 'admin') {
@@ -136,7 +136,19 @@ Route::prefix('municipality')
     ->name('municipality.')
     ->group(function () {
 
-        // Desk staff (office_staff) and municipality admins
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])->name('2fa.setup');
+        Route::post('/2fa/enable', [TwoFactorSetupController::class, 'enable'])->name('2fa.enable');
+        Route::post('/2fa/confirm', [TwoFactorSetupController::class, 'confirm'])->name('2fa.confirm');
+        Route::delete('/2fa/disable', [TwoFactorSetupController::class, 'disable'])->name('2fa.disable');
+
+        Route::get('/office-profile', [OfficeProfileController::class, 'index'])->name('office-profile');
+
+        Route::get('/services', [ServiceController::class, 'index'])->name('services');
+
+        Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
+
         Route::get('/requests', [ServiceRequestController::class, 'index'])->name('requests');
         Route::get('/requests/{serviceRequest}', [ServiceRequestController::class, 'show'])->name('requests.show');
         Route::patch('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])->name('requests.update-status');
@@ -146,16 +158,8 @@ Route::prefix('municipality')
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
         Route::get('/chat', fn () => view('municipality.chat'))->name('chat');
 
-        // Municipality admin only (full office management per project brief)
+        // Municipality administrators: change office profile, catalog (services / categories)
         Route::middleware(['municipality.admin'])->group(function () {
-            Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
-            Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])->name('2fa.setup');
-            Route::post('/2fa/enable', [TwoFactorSetupController::class, 'enable'])->name('2fa.enable');
-            Route::post('/2fa/confirm', [TwoFactorSetupController::class, 'confirm'])->name('2fa.confirm');
-            Route::delete('/2fa/disable', [TwoFactorSetupController::class, 'disable'])->name('2fa.disable');
-
-            Route::get('/office-profile', [OfficeProfileController::class, 'index'])->name('office-profile');
             Route::get('/office-profile/{office}/edit', [OfficeProfileController::class, 'edit'])->name('office-profile.edit');
             Route::put('/office-profile/{office}', [OfficeProfileController::class, 'update'])->name('office-profile.update');
 
@@ -163,14 +167,11 @@ Route::prefix('municipality')
                 ->only(['store', 'update', 'destroy'])
                 ->names('categories');
 
-            Route::get('/services', [ServiceController::class, 'index'])->name('services');
             Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
             Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
             Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
             Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
             Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
-
-            Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         });
     });
 

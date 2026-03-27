@@ -11,11 +11,18 @@
     </div>
 @endif
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="fw-semibold mb-0">All Services</h5>
-    <a href="{{ route('municipality.services.create', absolute: false) }}" class="btn btn-primary btn-sm">
-        <i class="bi bi-plus-lg me-1"></i>Add Service
-    </a>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h5 class="fw-semibold mb-0">All Services</h5>
+        @if(auth()->user()->isOfficeStaff())
+            <small class="text-muted">View only — municipality admins manage the catalog.</small>
+        @endif
+    </div>
+    @if(auth()->user()->isMunicipalityAdmin())
+        <a href="{{ route('municipality.services.create', absolute: false) }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Add Service
+        </a>
+    @endif
 </div>
 
 @forelse($offices as $office)
@@ -25,14 +32,15 @@
             <h6 class="mb-0 fw-semibold">
                 <i class="bi bi-building me-2 text-primary"></i>{{ $office->name }}
             </h6>
-            {{-- Add category modal trigger --}}
-            <button class="btn btn-outline-secondary btn-sm"
-                    data-bs-toggle="modal"
-                    data-bs-target="#addCategoryModal"
-                    data-office-id="{{ $office->id }}"
-                    data-office-name="{{ $office->name }}">
-                <i class="bi bi-folder-plus me-1"></i>Add Category
-            </button>
+            @if(auth()->user()->isMunicipalityAdmin())
+                <button class="btn btn-outline-secondary btn-sm"
+                        data-bs-toggle="modal"
+                        data-bs-target="#addCategoryModal"
+                        data-office-id="{{ $office->id }}"
+                        data-office-name="{{ $office->name }}">
+                    <i class="bi bi-folder-plus me-1"></i>Add Category
+                </button>
+            @endif
         </div>
 
         <div class="card-body p-0">
@@ -46,23 +54,25 @@
                                 {{ $category->services->count() }} service(s)
                             </span>
                         </span>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-secondary btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCategoryModal"
-                                    data-category-id="{{ $category->id }}"
-                                    data-category-name="{{ $category->name }}">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <form method="POST"
-                                  action="{{ route('municipality.categories.destroy', $category, absolute: false) }}"
-                                  onsubmit="return confirm('Delete category \'{{ $category->name }}\' and all its services?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    <i class="bi bi-trash"></i>
+                        @if(auth()->user()->isMunicipalityAdmin())
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-secondary btn-sm"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editCategoryModal"
+                                        data-category-id="{{ $category->id }}"
+                                        data-category-name="{{ $category->name }}">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
-                            </form>
-                        </div>
+                                <form method="POST"
+                                      action="{{ route('municipality.categories.destroy', $category, absolute: false) }}"
+                                      onsubmit="return confirm('Delete category \'{{ $category->name }}\' and all its services?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Services table --}}
@@ -74,7 +84,9 @@
                                     <th>Price</th>
                                     <th>Duration</th>
                                     <th>Required Documents</th>
-                                    <th class="text-end pe-4">Actions</th>
+                                    @if(auth()->user()->isMunicipalityAdmin())
+                                        <th class="text-end pe-4">Actions</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -99,21 +111,23 @@
                                                 <span class="text-muted">None</span>
                                             @endif
                                         </td>
-                                        <td class="text-end pe-4">
-                                            <a href="{{ route('municipality.services.edit', $service, absolute: false) }}"
-                                               class="btn btn-outline-primary btn-sm me-1">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <form method="POST"
-                                                  action="{{ route('municipality.services.destroy', $service, absolute: false) }}"
-                                                  class="d-inline"
-                                                  onsubmit="return confirm('Delete service \'{{ $service->name }}\'?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-                                        </td>
+                                        @if(auth()->user()->isMunicipalityAdmin())
+                                            <td class="text-end pe-4">
+                                                <a href="{{ route('municipality.services.edit', $service, absolute: false) }}"
+                                                   class="btn btn-outline-primary btn-sm me-1">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <form method="POST"
+                                                      action="{{ route('municipality.services.destroy', $service, absolute: false) }}"
+                                                      class="d-inline"
+                                                      onsubmit="return confirm('Delete service \'{{ $service->name }}\'?')">
+                                                    @csrf @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -121,7 +135,9 @@
                     @else
                         <div class="text-muted small px-4 py-3">
                             No services in this category yet.
-                            <a href="{{ route('municipality.services.create', absolute: false) }}">Add one</a>
+                            @if(auth()->user()->isMunicipalityAdmin())
+                                <a href="{{ route('municipality.services.create', absolute: false) }}">Add one</a>
+                            @endif
                         </div>
                     @endif
                 </div>
@@ -141,6 +157,7 @@
     </div>
 @endforelse
 
+@if(auth()->user()->isMunicipalityAdmin())
 {{-- ── Add Category Modal ─────────────────────────────────────────── --}}
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
     <div class="modal-dialog">
@@ -207,5 +224,6 @@ document.getElementById('editCategoryModal').addEventListener('show.bs.modal', f
         '/municipality/categories/' + categoryId;
 });
 </script>
+@endif
 
 @endsection
