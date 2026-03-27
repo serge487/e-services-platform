@@ -101,6 +101,12 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
             return view('citizen.dashboard');
         })->name('dashboard');
 
+        // Citizen app pages
+        Route::get('/services', fn () => view('citizen.services'))->name('services');
+        // Backward-compatible alias in case older templates/cache use singular route name.
+        Route::get('/service', fn () => redirect()->route('citizen.services'))->name('service');
+        Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
+        Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
         // ── Categories ──────────────────────────────────────────────
         Route::resource('categories', CategoryController::class)
             ->only(['store', 'update', 'destroy'])
