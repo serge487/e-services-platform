@@ -1,9 +1,15 @@
 <?php
 
+use App\Http\Middleware\EnsureCitizenSessionGate;
+use App\Http\Middleware\EnsureMunicipalityAdmin;
+use App\Http\Middleware\EnsureMunicipalityStaff;
+use App\Providers\FortifyServiceProvider;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,8 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'municipality' => \App\Http\Middleware\EnsureMunicipalityRole::class,
-            'citizen.gate' => \App\Http\Middleware\EnsureCitizenSessionGate::class,
+            'municipality.staff' => EnsureMunicipalityStaff::class,
+            'municipality.admin' => EnsureMunicipalityAdmin::class,
+            'citizen.gate' => EnsureCitizenSessionGate::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {
@@ -23,17 +30,21 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($request->is('admin') || $request->is('admin/*')) {
-                return \Filament\Facades\Filament::getLoginUrl() ?? '/admin/login';
+                return Filament::getLoginUrl() ?? '/admin/login';
             }
 
             return route('citizen.login', absolute: false);
         });
 
         $middleware->redirectUsersTo(function (Request $request) {
-            $user = \Illuminate\Support\Facades\Auth::user();
+            $user = Auth::user();
 
             if ($user?->role === 'municipality') {
                 return '/municipality/dashboard';
+            }
+
+            if ($user?->role === 'office_staff') {
+                return '/municipality/requests';
             }
 
             if ($user?->role === 'admin') {
@@ -47,6 +58,6 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withProviders([
-        App\Providers\FortifyServiceProvider::class,
+        FortifyServiceProvider::class,
     ])
     ->create();

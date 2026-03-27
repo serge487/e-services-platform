@@ -152,24 +152,28 @@
         </div>
 
         <nav class="sidebar-nav">
-            <div class="nav-label">Main</div>
+            @if(auth()->user()->isMunicipalityAdmin())
+                <div class="nav-label">Main</div>
 
-            <a href="{{ route('municipality.dashboard', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.dashboard') ? 'active' : '' }}">
-                <i class="bi bi-speedometer2"></i> Dashboard
-            </a>
+                <a href="{{ route('municipality.dashboard', absolute: false) }}"
+                   class="{{ request()->routeIs('municipality.dashboard') ? 'active' : '' }}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
 
-            <a href="{{ route('municipality.office-profile', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.office-profile') ? 'active' : '' }}">
-                <i class="bi bi-building"></i> Office Profile
-            </a>
+                <a href="{{ route('municipality.office-profile', absolute: false) }}"
+                   class="{{ request()->routeIs('municipality.office-profile') ? 'active' : '' }}">
+                    <i class="bi bi-building"></i> Office Profile
+                </a>
 
-            <div class="nav-label">Services</div>
+                <div class="nav-label">Services</div>
 
-            <a href="{{ route('municipality.services', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.services') ? 'active' : '' }}">
-                <i class="bi bi-grid-3x3-gap"></i> Services
-            </a>
+                <a href="{{ route('municipality.services', absolute: false) }}"
+                   class="{{ request()->routeIs('municipality.services') ? 'active' : '' }}">
+                    <i class="bi bi-grid-3x3-gap"></i> Services
+                </a>
+            @else
+                <div class="nav-label">Desk</div>
+            @endif
 
             <a href="{{ route('municipality.requests', absolute: false) }}"
                class="{{ request()->routeIs('municipality.requests') ? 'active' : '' }}">
@@ -183,27 +187,31 @@
 
             <div class="nav-label">Communication</div>
 
-            <a href="{{ route('municipality.feedback', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.feedback') ? 'active' : '' }}">
-                <i class="bi bi-star"></i> Feedback
-            </a>
+            @if(auth()->user()->isMunicipalityAdmin())
+                <a href="{{ route('municipality.feedback', absolute: false) }}"
+                   class="{{ request()->routeIs('municipality.feedback') ? 'active' : '' }}">
+                    <i class="bi bi-star"></i> Feedback
+                </a>
+            @endif
 
             <a href="{{ route('municipality.chat', absolute: false) }}"
                class="{{ request()->routeIs('municipality.chat') ? 'active' : '' }}">
                 <i class="bi bi-chat-dots"></i> Chat
             </a>
 
-            <div class="nav-label">Security</div>
+            @if(auth()->user()->isMunicipalityAdmin())
+                <div class="nav-label">Security</div>
 
-            <a href="{{ route('municipality.2fa.setup', absolute: false) }}"
-               class="{{ request()->routeIs('municipality.2fa.setup') ? 'active' : '' }}">
-                <i class="bi bi-shield-lock"></i> Two-Factor Auth
-                @if(! auth()->user()->two_factor_confirmed_at)
-                    <span class="badge bg-warning text-dark ms-auto">Off</span>
-                @else
-                    <span class="badge bg-success ms-auto">On</span>
-                @endif
-            </a>
+                <a href="{{ route('municipality.2fa.setup', absolute: false) }}"
+                   class="{{ request()->routeIs('municipality.2fa.setup') ? 'active' : '' }}">
+                    <i class="bi bi-shield-lock"></i> Two-Factor Auth
+                    @if(! auth()->user()->two_factor_confirmed_at)
+                        <span class="badge bg-warning text-dark ms-auto">Off</span>
+                    @else
+                        <span class="badge bg-success ms-auto">On</span>
+                    @endif
+                </a>
+            @endif
         </nav>
 
         <div class="sidebar-footer">
@@ -230,7 +238,7 @@
 
         <div class="page-content">
             {{-- 2FA warning if not set up --}}
-            @if(! auth()->user()->two_factor_confirmed_at)
+            @if(auth()->user()->isMunicipalityAdmin() && ! auth()->user()->two_factor_confirmed_at)
                 <div class="twofa-banner">
                     <span>⚠️ <strong>Two-factor authentication is not enabled.</strong> Secure your account now.</span>
                     <a href="{{ route('municipality.2fa.setup', absolute: false) }}" class="btn btn-sm btn-warning">Enable 2FA</a>

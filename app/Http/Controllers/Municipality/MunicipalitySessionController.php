@@ -14,8 +14,10 @@ class MunicipalitySessionController extends Controller
     {
         $user = Auth::user();
 
-        if ($user && $user->role === 'municipality') {
-            return redirect()->route('municipality.dashboard');
+        if ($user && $user->canAccessMunicipalityPortal()) {
+            return redirect()->route(
+                $user->isMunicipalityAdmin() ? 'municipality.dashboard' : 'municipality.requests'
+            );
         }
 
         return view('municipality.auth.login', [
@@ -26,15 +28,17 @@ class MunicipalitySessionController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
         if (Auth::check()) {
             $existing = Auth::user();
 
-            if ($existing->role === 'municipality') {
-                return redirect()->route('municipality.dashboard');
+            if ($existing->canAccessMunicipalityPortal()) {
+                return redirect()->route(
+                    $existing->isMunicipalityAdmin() ? 'municipality.dashboard' : 'municipality.requests'
+                );
             }
 
             Auth::logout();
@@ -43,7 +47,7 @@ class MunicipalitySessionController extends Controller
         }
 
         if (! Auth::attempt([
-            'email'    => $credentials['email'],
+            'email' => $credentials['email'],
             'password' => $credentials['password'],
         ], $request->boolean('remember'))) {
             return back()->withErrors(['email' => __('auth.failed')])->onlyInput('email');
@@ -53,16 +57,22 @@ class MunicipalitySessionController extends Controller
 
         $user = Auth::user();
 
-        if ($user->role !== 'municipality') {
+        if (! $user->canAccessMunicipalityPortal()) {
             Auth::logout();
+
             return back()->withErrors(['email' => 'Access denied.'])->onlyInput('email');
         }
 
         if (! $user->is_active) {
             Auth::logout();
+
             return back()->withErrors(['email' => 'Account deactivated. Please contact your administrator.'])->onlyInput('email');
         }
 
-        return redirect()->intended(route('municipality.dashboard'));
+        $home = $user->isMunicipalityAdmin()
+            ? route('municipality.dashboard')
+            : route('municipality.requests');
+
+        return redirect()->intended($home);
     }
 }
