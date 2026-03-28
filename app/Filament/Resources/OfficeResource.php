@@ -50,19 +50,21 @@ class OfficeResource extends Resource
                     ])->columns(2),
 
                 Forms\Components\Section::make('Map Location')
-                    ->description('Enter the GPS coordinates for Google Maps.')
-                    ->schema([
-                        Forms\Components\TextInput::make('latitude')
-                            ->required()
-                            ->numeric()
-                            ->placeholder('e.g. 33.8938')
-                            ->rules(['min:-90', 'max:90']),
-                        Forms\Components\TextInput::make('longitude')
-                            ->required()
-                            ->numeric()
-                            ->placeholder('e.g. 35.5018')
-                            ->rules(['min:-180', 'max:180']),
-                    ])->columns(2),
+                ->description('Enter coordinates manually or click on the map to auto-fill.')
+            ->schema([
+              Forms\Components\TextInput::make('latitude')
+            ->required()
+            ->numeric()
+            ->placeholder('e.g. 33.8938')
+            ->rules(['min:-90', 'max:90']),
+        Forms\Components\TextInput::make('longitude')
+            ->required()
+            ->numeric()
+            ->placeholder('e.g. 35.5018')
+            ->rules(['min:-180', 'max:180']),
+        Forms\Components\View::make('filament.map-picker')
+            ->columnSpanFull(),
+             ])->columns(2),
 
                 Forms\Components\Section::make('Working Hours')
                     ->description('Define working hours for each day.')
