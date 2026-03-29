@@ -56,6 +56,7 @@ Route::middleware('auth')->group(function () {
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 
+    // Distinct name so route('logout') is not shadowed by Fortify’s POST /fortify/logout.
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
-        ->name('logout');
+        ->name('web.logout');
 });
