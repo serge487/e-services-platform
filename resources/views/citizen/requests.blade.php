@@ -1,15 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Services</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="p-8">
-        <h1 class="text-2xl font-bold text-gray-800">Requests</h1>
-        <p class="text-gray-500 mt-2">Browse available requests here.</p>
-        <a href="{{ route('citizen.dashboard') }}" class="mt-4 inline-block text-indigo-600 hover:underline">← Back to Dashboard</a>
+@extends('layouts.public')
+@section('title', 'My Requests')
+@section('page-title', 'My Requests')
+@section('content')
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-file-earmark-text fs-1 d-block mb-2"></i>
+        <p class="mb-0">Your service requests will appear here.</p>
     </div>
-</body>
-</html>
+</div>
+@endsection
