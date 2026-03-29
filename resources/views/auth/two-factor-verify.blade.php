@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Verify 2FA</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -35,7 +36,7 @@
             </form>
         @endif
 
-        <form method="POST" action="{{ route('logout', absolute: false) }}" class="mt-4">
+        <form method="POST" action="{{ route('web.logout', absolute: false) }}" class="mt-4">
             @csrf
             <button type="submit" class="text-sm text-gray-500 hover:underline">
                 Logout and go back

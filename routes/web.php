@@ -9,6 +9,8 @@
 | • Citizen users:   URLs under /citizen/... (login, register, ID verify, 2FA, app pages).
 | • Municipality:    URLs under /municipality/... (municipality admins + office desk staff).
 | • Admin:           Filament panel at /admin (role admin; routes live in Filament config).
+| • Fortify:        MFA/recovery routes under /fortify/... (prefix in config/fortify.php); primary
+|                    municipality sign-in is /municipality/login, not Fortify’s /fortify/login.
 |
 | Important: APP_URL must match the browser origin (host + port), e.g. http://127.0.0.1:8000.
 | Relative links in Blade use route(..., absolute: false) so navigation still works if you
@@ -55,8 +57,22 @@ Route::post('municipality/login', [MunicipalitySessionController::class, 'store'
 // Shared Breeze profile — any authenticated role can access /profile
 // --------------------------------------------------------------------------
 Route::get('/dashboard', function () {
+    $user = auth()->user();
+
+    if (in_array($user->role, ['municipality', 'office_staff'], true)) {
+        return redirect()->route('municipality.dashboard');
+    }
+
+    if ($user->role === 'admin') {
+        return redirect('/admin');
+    }
+
+    if (! $user->hasVerifiedEmail()) {
+        return redirect()->route('verification.notice');
+    }
+
     return redirect()->route('citizen.dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

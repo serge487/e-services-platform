@@ -172,7 +172,7 @@
 
         <div class="mt-6 text-center text-sm text-gray-500">
             Wrong account?
-            <form method="POST" action="{{ route('logout', absolute: false) }}" class="inline">
+            <form method="POST" action="{{ route('web.logout', absolute: false) }}" class="inline">
                 @csrf
                 <button type="submit" class="text-indigo-600 hover:underline font-medium">Sign out and start at login</button>
             </form>

@@ -86,7 +86,8 @@ return [
     |
     */
 
-    'prefix' => '',
+    // Keep Fortify off root URLs so /login can redirect to citizen auth (see routes/web.php).
+    'prefix' => 'fortify',
 
     'domain' => null,
 

@@ -12,7 +12,7 @@ class EnsureMunicipalityStaff
     public function handle(Request $request, Closure $next): Response
     {
         if (! Auth::check()) {
-            return redirect()->route('municipality.login');
+            return redirect()->guest(route('municipality.login'));
         }
 
         $user = Auth::user();
