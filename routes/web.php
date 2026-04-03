@@ -93,6 +93,7 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
     Route::post('/identity-verification/confirm', [CitizenIdentityVerificationController::class, 'confirm'])
         ->name('identity-verification.confirm');
 
+        
     // ── 2FA ──────────────────────────────────────────────────────────────
     Route::get('/2fa/setup', [TwoFactorController::class, 'setup'])->name('2fa.setup');
     Route::post('/2fa/enable', [TwoFactorController::class, 'enable'])->name('2fa.enable');
@@ -115,7 +116,10 @@ Route::get('/dashboard', function () {
 
         // Backward-compatible alias — older links using singular route name still work
         Route::get('/service', fn () => redirect()->route('citizen.services'))->name('service');
-        Route::get('/chat', fn () => view('citizen.chat'))->name('chat');
+ Route::get('/chat', [App\Http\Controllers\CitizenChatController::class, 'index'])->name('chat');
+Route::post('/chat/start', [App\Http\Controllers\CitizenChatController::class, 'startOrGetChat'])->name('chat.start');
+Route::get('/chat/{chatId}', [App\Http\Controllers\CitizenChatController::class, 'show'])->name('chat.show');
+Route::post('/chat/{chatId}/send', [App\Http\Controllers\CitizenChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
         Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
         Route::get('/notifications', fn () => view('citizen.notifications'))->name('notifications');
@@ -170,8 +174,10 @@ Route::prefix('municipality')
         // ── Appointments, feedback, chat (shells) ─────────────────────────
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
-        Route::get('/chat', fn () => view('municipality.chat'))->name('chat');
-
+        Route::get('/chat', [App\Http\Controllers\Municipality\ChatController::class, 'index'])->name('chat');
+        Route::get('/chat/{chatId}', [App\Http\Controllers\Municipality\ChatController::class, 'show'])->name('chat.show');
+        Route::post('/chat/{chatId}/send', [App\Http\Controllers\Municipality\ChatController::class, 'sendMessage'])->name('chat.send');
+        
         // ── Municipality admin only: edit office profile + manage catalog ──
         Route::middleware(['municipality.admin'])->group(function () {
 

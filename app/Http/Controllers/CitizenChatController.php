@@ -1,0 +1,111 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Chat;
+use App\Models\ChatMessage;
+use App\Models\Office;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+class CitizenChatController extends Controller
+{
+    /**
+     * Show the chat page with all offices
+     */
+    public function index()
+    {
+        $user = Auth::user();
+
+        // Get all chats for this citizen
+        $chats = Chat::where('citizen_id', $user->id)
+            ->with(['office', 'latestMessage'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        // Get all offices for starting a new chat
+        $offices = Office::all();
+
+        return view('citizen.chat', compact('chats', 'offices'));
+    }
+
+    /**
+     * Start or get existing chat with an office
+     */
+   public function startOrGetChat(Request $request)
+{
+    $request->validate([
+        'office_id' => 'required|exists:offices,id',
+    ]);
+
+    $user = Auth::user();
+
+    // Find existing chat or create new one
+    $chat = Chat::where('citizen_id', $user->id)
+        ->where('office_id', $request->office_id)
+        ->first();
+
+    if (!$chat) {
+        $chat = new Chat();
+        $chat->citizen_id = $user->id;
+        $chat->office_id = $request->office_id;
+        $chat->save();
+    }
+
+    return redirect()->route('citizen.chat.show', $chat->id);
+}
+    /**
+     * Show a specific chat
+     */
+    public function show($chatId)
+    {
+        $user = Auth::user();
+
+        $chat = Chat::where('id', $chatId)
+            ->where('citizen_id', $user->id)
+            ->with(['office', 'messages.sender'])
+            ->firstOrFail();
+
+        // Get all chats for sidebar
+        $chats = Chat::where('citizen_id', $user->id)
+            ->with(['office', 'latestMessage'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $offices = Office::all();
+
+        // Mark messages as read
+        ChatMessage::where('chat_id', $chatId)
+            ->where('sender_id', '!=', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return view('citizen.chat', compact('chat', 'chats', 'offices'));
+    }
+
+    /**
+     * Send a message
+     */
+    public function sendMessage(Request $request, $chatId)
+    {
+        $request->validate([
+            'content' => 'required|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+
+        $chat = Chat::where('id', $chatId)
+            ->where('citizen_id', $user->id)
+            ->firstOrFail();
+
+        ChatMessage::create([
+            'chat_id'   => $chat->id,
+            'sender_id' => $user->id,
+            'content'   => $request->content,
+        ]);
+
+        $chat->touch();
+
+        return back();
+    }
+}
