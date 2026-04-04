@@ -197,7 +197,7 @@
         .topbar-stat .count.has-items { background: #fbbf24; color: #78350f; }
 
         /* ── Page content ── */
-        .page-content { flex: 1; padding: 1.75rem; }
+        .page-content { flex: 1; min-height: 0; padding: 1.75rem; }
 
         /* ── Responsive ── */
         @media (max-width: 768px) {

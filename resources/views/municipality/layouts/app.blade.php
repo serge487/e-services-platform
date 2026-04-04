@@ -121,8 +121,8 @@
         }
         .topbar-actions .btn-logout:hover { background: #dc3545; color: #fff; }
 
-        /* Page content */
-        .page-content { flex: 1; padding: 1.75rem; }
+        /* Page content (min-height:0 so nested flex children e.g. chat can scroll instead of overflowing) */
+        .page-content { flex: 1; min-height: 0; padding: 1.75rem; }
 
         /* 2FA warning banner */
         .twofa-banner {
