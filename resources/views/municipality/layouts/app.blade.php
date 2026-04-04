@@ -77,6 +77,16 @@
 
         .sidebar-nav a i { font-size: 1.1rem; width: 20px; text-align: center; }
 
+        .sidebar-nav .nav-badge {
+            margin-left: auto;
+            background: #fbbf24;
+            color: #78350f;
+            border-radius: 10px;
+            padding: 0.05rem 0.5rem;
+            font-size: 0.68rem;
+            font-weight: 700;
+        }
+
         .sidebar-footer {
             padding: 1rem 1.5rem;
             border-top: 1px solid rgba(255,255,255,0.1);
@@ -109,6 +119,27 @@
         #topbar .page-title { font-weight: 600; font-size: 1rem; color: #1a3c5e; margin: 0; }
 
         .topbar-actions { display: flex; align-items: center; gap: 1rem; }
+        .topbar-notifications {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.82rem;
+            color: #64748b;
+            text-decoration: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+        .topbar-notifications:hover { background: #f1f5f9; color: #1a3c5e; }
+        .topbar-notifications .count {
+            background: #e2e8f0;
+            color: #374151;
+            border-radius: 8px;
+            padding: 0.05rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+        .topbar-notifications .count.has-items { background: #fbbf24; color: #78350f; }
         .topbar-actions .btn-logout {
             background: none;
             border: 1px solid #dc3545;
@@ -190,6 +221,12 @@
                 <i class="bi bi-star"></i> Feedback
             </a>
 
+            <a href="{{ route('municipality.notifications', absolute: false) }}"
+               class="{{ request()->routeIs('municipality.notifications') ? 'active' : '' }}">
+                <i class="bi bi-bell"></i> Notifications
+                <span class="nav-badge {{ ($unread_notifications ?? 0) > 0 ? '' : 'd-none' }}" data-unread-notifications>{{ $unread_notifications ?? 0 }}</span>
+            </a>
+
             <a href="{{ route('municipality.chat', absolute: false) }}"
                class="{{ request()->routeIs('municipality.chat') ? 'active' : '' }}">
                 <i class="bi bi-chat-dots"></i> Chat
@@ -228,6 +265,10 @@
                 @endif
             </div>
             <div class="topbar-actions">
+                <a href="{{ route('municipality.notifications', absolute: false) }}" class="topbar-notifications">
+                    <i class="bi bi-bell"></i>
+                    <span class="count {{ ($unread_notifications ?? 0) > 0 ? 'has-items' : '' }}" data-unread-notifications>{{ $unread_notifications ?? 0 }}</span>
+                </a>
                 <form method="POST" action="{{ route('web.logout', absolute: false) }}">
                     @csrf
                     <button type="submit" class="btn-logout">

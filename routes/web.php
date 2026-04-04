@@ -22,10 +22,12 @@ use App\Http\Controllers\Auth\CitizenIdentityVerificationController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\CitizenChatController;
+use App\Http\Controllers\CitizenNotificationController;
 use App\Http\Controllers\Municipality\CategoryController;
 use App\Http\Controllers\Municipality\ChatController;
 use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\MunicipalitySessionController;
+use App\Http\Controllers\Municipality\NotificationController as MunicipalityNotificationController;
 use App\Http\Controllers\Municipality\OfficeProfileController;
 use App\Http\Controllers\Municipality\ServiceController;
 use App\Http\Controllers\Municipality\ServiceRequestController;
@@ -127,7 +129,8 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::post('/chat/{chatId}/send', [CitizenChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
         Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
-        Route::get('/notifications', fn () => view('citizen.notifications'))->name('notifications');
+        Route::get('/notifications', [CitizenNotificationController::class, 'index'])->name('notifications');
+        Route::get('/notifications/{id}/chat', [CitizenNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::get('/history', fn () => view('citizen.history'))->name('history');
         Route::get('/profile', fn () => view('citizen.profile'))->name('profile');
     });
@@ -179,6 +182,8 @@ Route::prefix('municipality')
         // ── Appointments, feedback, chat (shells) ─────────────────────────
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
+        Route::get('/notifications', [MunicipalityNotificationController::class, 'index'])->name('notifications');
+        Route::get('/notifications/{id}/chat', [MunicipalityNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::get('/chat', [ChatController::class, 'index'])->name('chat');
         Route::get('/chat/{chatId}', [ChatController::class, 'show'])->name('chat.show');
         Route::get('/chat/{chatId}/poll', [ChatController::class, 'poll'])

@@ -15,7 +15,7 @@
         <div class="overflow-auto flex-grow-1" style="min-height: 0;">
             @forelse($chats as $c)
                 <a href="{{ route('municipality.chat.show', $c->id) }}"
-                    class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom {{ isset($chat) && $chat->id === $c->id ? 'bg-primary bg-opacity-10' : '' }}">
+                    class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom {{ isset($chat) && (int) $chat->id === (int) $c->id ? 'bg-primary bg-opacity-10' : '' }}">
                     <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
                         style="width:40px;height:40px;font-size:14px;flex-shrink:0;background:#1a3c5e;">
                         {{ strtoupper(substr($c->citizen->name, 0, 2)) }}

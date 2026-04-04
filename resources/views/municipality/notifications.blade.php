@@ -1,4 +1,4 @@
-@extends('layouts.public')
+@extends('municipality.layouts.app')
 @section('title', 'Notifications')
 @section('page-title', 'Notifications')
 @push('styles')
@@ -9,7 +9,7 @@
 @section('content')
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-bottom py-3">
-        <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Your notifications</h6>
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Notifications</h6>
         <p class="mb-0 mt-1 small text-muted">Click a message to open that conversation in Chat. New messages appear here instantly.</p>
     </div>
     <div class="list-group list-group-flush" id="notifications-live-list">
@@ -18,7 +18,7 @@
                 $chatId = data_get($notification->data, 'chat_id');
             @endphp
             @if($chatId)
-                <a href="{{ route('citizen.notifications.chat', $notification->id) }}"
+                <a href="{{ route('municipality.notifications.chat', $notification->id) }}"
                    data-notification-id="{{ $notification->id }}"
                    class="list-group-item list-group-item-action py-3 text-decoration-none {{ $notification->read_at ? '' : 'notification-row-unread' }}">
                     <div class="d-flex justify-content-between gap-2">

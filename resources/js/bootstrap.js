@@ -10,12 +10,16 @@ window.axios.defaults.headers.common['X-CSRF-TOKEN'] =
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
 const bc = typeof window !== 'undefined' ? window.__broadcasting : undefined;
-const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || bc?.key;
-const port = Number(import.meta.env.VITE_REVERB_PORT ?? bc?.wsPort ?? 8080);
-const scheme = import.meta.env.VITE_REVERB_SCHEME ?? bc?.scheme ?? 'http';
-const tls = scheme === 'https';
+// Prefer Blade-injected config: a baked VITE_REVERB_APP_KEY can be wrong/stale and break only some origins.
+const reverbKey = bc?.key || import.meta.env.VITE_REVERB_APP_KEY || '';
+const port = Number(bc?.wsPort ?? import.meta.env.VITE_REVERB_PORT ?? 8080);
+const tls =
+    typeof window !== 'undefined' && window.location?.protocol === 'https:';
+// Always match the browser hostname so ws:// uses the same host as the page (localhost vs 127.0.0.1).
 const wsHost =
-    import.meta.env.VITE_REVERB_HOST || bc?.wsHost || window.location.hostname;
+    typeof window !== 'undefined' && window.location?.hostname
+        ? window.location.hostname
+        : import.meta.env.VITE_REVERB_HOST || bc?.wsHost || '127.0.0.1';
 
 if (reverbKey) {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';

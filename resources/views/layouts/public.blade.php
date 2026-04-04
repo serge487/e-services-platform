@@ -255,9 +255,7 @@
                 <a href="{{ route('citizen.notifications', absolute: false) }}"
                    class="{{ request()->routeIs('citizen.notifications') ? 'active' : '' }}">
                     <i class="bi bi-bell"></i> Notifications
-                    @if(($citizenStats['unread_notifications'] ?? 0) > 0)
-                        <span class="nav-badge alert">{{ $citizenStats['unread_notifications'] }}</span>
-                    @endif
+                    <span class="nav-badge alert {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? '' : 'd-none' }}" data-unread-notifications>{{ $citizenStats['unread_notifications'] ?? 0 }}</span>
                 </a>
 
                 <div class="nav-label">More</div>
@@ -338,7 +336,7 @@
                     </a>
                     <a href="{{ route('citizen.notifications', absolute: false) }}" class="topbar-stat">
                         <i class="bi bi-bell"></i>
-                        <span class="count {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}">
+                        <span class="count {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}" data-unread-notifications>
                             {{ $citizenStats['unread_notifications'] ?? 0 }}
                         </span>
                     </a>

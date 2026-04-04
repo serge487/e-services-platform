@@ -14,3 +14,8 @@
         window.__broadcasting = @json($broadcastingConfig);
     </script>
 @endif
+@auth
+    <script>
+        window.__notificationUserId = {{ auth()->id() }};
+    </script>
+@endauth
