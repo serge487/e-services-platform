@@ -30,17 +30,30 @@ class AppServiceProvider extends ServiceProvider
             ], absolute: false));
         });
 
-        View::composer('layouts.public', function ($view) {
-            if (Auth::check() && Auth::user()->role === 'citizen') {
-                $view->with('citizenStats', CitizenLayoutStats::forCitizen(Auth::user()));
+        $citizenStatsComposer = function ($view) {
+            if (! Auth::check() || Auth::user()->role !== 'citizen') {
+                return;
             }
-        });
+            static $stats = null;
+            $stats ??= CitizenLayoutStats::forCitizen(Auth::user());
+            $view->with('citizenStats', $stats);
+        };
 
-        View::composer('municipality.layouts.app', function ($view) {
+        // Layout + named child views: composing the layout alone can miss stats for @extends children on some stacks.
+        View::composer('layouts.public', $citizenStatsComposer);
+        View::composer('citizen.chat', $citizenStatsComposer);
+
+        $municipalityUnreadComposer = function ($view) {
             $user = Auth::user();
-            if ($user && $user->canAccessMunicipalityPortal()) {
-                $view->with('unread_notifications', $user->unreadNotifications()->count());
+            if (! $user || ! $user->canAccessMunicipalityPortal()) {
+                return;
             }
-        });
+            static $unreadCount = null;
+            $unreadCount ??= $user->unreadNotifications()->count();
+            $view->with('unread_notifications', $unreadCount);
+        };
+
+        View::composer('municipality.layouts.app', $municipalityUnreadComposer);
+        View::composer('municipality.chat', $municipalityUnreadComposer);
     }
 }

@@ -36,7 +36,7 @@
         <div class="overflow-auto flex-grow-1" style="min-height: 0;">
             @forelse($chats as $c)
                 <a href="{{ route('citizen.chat.show', $c->id) }}"
-                    class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom hover-bg-light {{ isset($chat) && $chat->id === $c->id ? 'citizen-chat-list-active' : '' }}">
+                    class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom hover-bg-light {{ isset($chat) && (int) $chat->id === (int) $c->id ? 'citizen-chat-list-active' : '' }}">
                     <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
                         style="width:40px;height:40px;font-size:14px;flex-shrink:0;background:#0a5c4a;">
                         {{ strtoupper(substr($c->office->name, 0, 2)) }}
