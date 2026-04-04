@@ -130,6 +130,7 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
         Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
         Route::get('/notifications', [CitizenNotificationController::class, 'index'])->name('notifications');
+        Route::get('/notifications/{id}/chat', [CitizenNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::get('/history', fn () => view('citizen.history'))->name('history');
         Route::get('/profile', fn () => view('citizen.profile'))->name('profile');
     });
@@ -182,6 +183,7 @@ Route::prefix('municipality')
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         Route::get('/notifications', [MunicipalityNotificationController::class, 'index'])->name('notifications');
+        Route::get('/notifications/{id}/chat', [MunicipalityNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::get('/chat', [ChatController::class, 'index'])->name('chat');
         Route::get('/chat/{chatId}', [ChatController::class, 'show'])->name('chat.show');
         Route::get('/chat/{chatId}/poll', [ChatController::class, 'poll'])
