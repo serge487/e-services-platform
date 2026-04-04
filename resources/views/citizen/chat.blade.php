@@ -3,10 +3,10 @@
 @section('page-title', 'Chat & Support')
 @section('content')
 
-<div class="row g-0" style="height: calc(100vh - 200px);">
+<div class="row g-0 overflow-hidden h-100" style="height: calc(100vh - 200px); min-height: 0;">
 
     <!-- Left Panel: Chat List -->
-    <div class="col-md-4 border-end d-flex flex-column bg-white">
+    <div class="col-md-4 border-end d-flex flex-column bg-white h-100" style="min-height: 0;">
         <div class="p-3 border-bottom">
             <h6 class="fw-bold mb-3">💬 My Conversations</h6>
 
@@ -26,7 +26,7 @@
         </div>
 
         <!-- Chat History -->
-        <div class="overflow-auto flex-grow-1">
+        <div class="overflow-auto flex-grow-1" style="min-height: 0;">
             @forelse($chats as $c)
                 <a href="{{ route('citizen.chat.show', $c->id) }}"
                     class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom {{ isset($chat) && $chat->id === $c->id ? 'bg-primary bg-opacity-10' : '' }} hover-bg-light">
@@ -48,10 +48,10 @@
     </div>
 
     <!-- Right Panel: Chat Window -->
-    <div class="col-md-8 d-flex flex-column bg-light">
+    <div class="col-md-8 d-flex flex-column bg-light h-100" style="min-height: 0;">
         @if(isset($chat))
             <!-- Chat Header -->
-            <div class="bg-white border-bottom px-4 py-3 d-flex align-items-center gap-3">
+            <div class="bg-white border-bottom px-4 py-3 d-flex align-items-center gap-3 flex-shrink-0">
                 <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
                     style="width:40px;height:40px;font-size:14px;flex-shrink:0;">
                     {{ strtoupper(substr($chat->office->name, 0, 2)) }}
@@ -63,7 +63,7 @@
             </div>
 
             <!-- Messages -->
-            <div class="flex-grow-1 overflow-auto p-4 d-flex flex-column gap-3" id="messages">
+            <div class="flex-grow-1 overflow-auto p-4 d-flex flex-column gap-3" id="messages" style="min-height: 0;">
                 @forelse($chat->messages as $message)
                     <div class="d-flex {{ $message->sender_id === auth()->id() ? 'justify-content-end' : 'justify-content-start' }}">
                         <div class="px-3 py-2 rounded-3 shadow-sm"
@@ -84,7 +84,7 @@
             </div>
 
             <!-- Message Input -->
-            <div class="bg-white border-top p-3">
+            <div class="bg-white border-top p-3 flex-shrink-0">
                 <form id="chat-send-form" method="POST" action="{{ route('citizen.chat.send', $chat->id) }}" class="d-flex gap-2" autocomplete="off">
                     @csrf
                     <input type="text" name="content" placeholder="Type a message..." required
@@ -115,6 +115,8 @@
                 pollUrl: @json(route('citizen.chat.poll', $chat->id, absolute: false)),
             };
         </script>
+        {{-- No Vite/npm required: chat runs from public/js (works with php artisan serve only). --}}
+        <script src="{{ asset('js/chat-thread.js') }}?v=2" defer></script>
     @endpush
 @endif
 
