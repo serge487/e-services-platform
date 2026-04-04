@@ -9,21 +9,27 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 window.axios.defaults.headers.common['X-CSRF-TOKEN'] =
     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
+const bc = typeof window !== 'undefined' ? window.__broadcasting : undefined;
+const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || bc?.key;
+const port = Number(import.meta.env.VITE_REVERB_PORT ?? bc?.wsPort ?? 8080);
+const scheme = import.meta.env.VITE_REVERB_SCHEME ?? bc?.scheme ?? 'http';
+const tls = scheme === 'https';
+const wsHost =
+    import.meta.env.VITE_REVERB_HOST || bc?.wsHost || window.location.hostname;
+
 if (reverbKey) {
-    const port = Number(import.meta.env.VITE_REVERB_PORT ?? 8080);
-    const tls = (import.meta.env.VITE_REVERB_SCHEME ?? 'http') === 'https';
     window.Echo = new Echo({
         broadcaster: 'reverb',
         key: reverbKey,
-        wsHost: import.meta.env.VITE_REVERB_HOST ?? window.location.hostname,
+        wsHost,
         wsPort: port,
         wssPort: port,
         forceTLS: tls,
         enabledTransports: ['ws', 'wss'],
         auth: {
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                'X-CSRF-TOKEN':
+                    document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
             },
         },
     });
