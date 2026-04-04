@@ -121,7 +121,9 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::get('/chat', [CitizenChatController::class, 'index'])->name('chat');
         Route::post('/chat/start', [CitizenChatController::class, 'startOrGetChat'])->name('chat.start');
         Route::get('/chat/{chatId}', [CitizenChatController::class, 'show'])->name('chat.show');
-        Route::get('/chat/{chatId}/poll', [CitizenChatController::class, 'poll'])->name('chat.poll');
+        Route::get('/chat/{chatId}/poll', [CitizenChatController::class, 'poll'])
+            ->middleware('prevent.cache')
+            ->name('chat.poll');
         Route::post('/chat/{chatId}/send', [CitizenChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
         Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
@@ -179,7 +181,9 @@ Route::prefix('municipality')
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         Route::get('/chat', [ChatController::class, 'index'])->name('chat');
         Route::get('/chat/{chatId}', [ChatController::class, 'show'])->name('chat.show');
-        Route::get('/chat/{chatId}/poll', [ChatController::class, 'poll'])->name('chat.poll');
+        Route::get('/chat/{chatId}/poll', [ChatController::class, 'poll'])
+            ->middleware('prevent.cache')
+            ->name('chat.poll');
         Route::post('/chat/{chatId}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
 
         // ── Municipality admin only: edit office profile + manage catalog ──

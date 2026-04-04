@@ -96,10 +96,12 @@ export function initChatRealtime() {
         const res = await fetch(form.action, {
             method: 'POST',
             body: fd,
+            cache: 'no-store',
             headers: {
                 Accept: 'application/json',
                 'X-Requested-With': 'XMLHttpRequest',
             },
+            credentials: 'same-origin',
         });
 
         if (!res.ok) {
@@ -126,12 +128,13 @@ export function initChatRealtime() {
     }
 
     if (cfg.pollUrl) {
-        const poll = async () => {
+        const runPoll = async () => {
             try {
                 const after = maxSeenMessageId(messagesEl);
                 const url = new URL(cfg.pollUrl, window.location.origin);
                 url.searchParams.set('after', String(after));
                 const res = await fetch(url.toString(), {
+                    cache: 'no-store',
                     headers: {
                         Accept: 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
@@ -154,8 +157,15 @@ export function initChatRealtime() {
                 // ignore network errors
             }
         };
-        window.setInterval(poll, 2500);
-        poll();
+
+        window.setInterval(runPoll, 2500);
+        runPoll();
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                runPoll();
+            }
+        });
     }
 
     scrollChatToBottom(messagesEl);

@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureCitizenSessionGate;
 use App\Http\Middleware\EnsureMunicipalityAdmin;
 use App\Http\Middleware\EnsureMunicipalityStaff;
+use App\Http\Middleware\PreventResponseCaching;
 use App\Providers\FortifyServiceProvider;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Application;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'municipality.staff' => EnsureMunicipalityStaff::class,
             'municipality.admin' => EnsureMunicipalityAdmin::class,
             'citizen.gate' => EnsureCitizenSessionGate::class,
+            'prevent.cache' => PreventResponseCaching::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {
