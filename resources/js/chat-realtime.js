@@ -33,8 +33,8 @@ function appendMessageBubble(messagesEl, m, fromSelf, cfg) {
 
     const isCitizen = cfg.theme === 'citizen';
     const selfStyle = isCitizen
-        ? 'background:#4f46e5;color:white;border-bottom-right-radius:4px!important;'
-        : 'background:#198754;color:white;border-bottom-right-radius:4px!important;';
+        ? 'background:#0a5c4a;color:white;border-bottom-right-radius:4px!important;'
+        : 'background:#1a3c5e;color:white;border-bottom-right-radius:4px!important;';
     const otherStyle =
         'background:white;color:#1f2937;border-bottom-left-radius:4px!important;';
 

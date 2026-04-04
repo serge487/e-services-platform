@@ -1,6 +1,12 @@
 @extends('layouts.public')
 @section('title', 'Chat')
 @section('page-title', 'Chat & Support')
+@push('styles')
+    <style>
+        /* Match layouts.public citizen sidebar (--citizen-bg #0a5c4a) */
+        .citizen-chat-list-active { background: rgba(10, 92, 74, 0.12); }
+    </style>
+@endpush
 @section('content')
 
 <div class="row g-0 overflow-hidden h-100" style="height: calc(100vh - 200px); min-height: 0;">
@@ -19,7 +25,8 @@
                         <option value="{{ $office->id }}">{{ $office->name }}</option>
                     @endforeach
                 </select>
-                <button type="submit" class="btn btn-primary btn-sm w-100">
+                <button type="submit" class="btn btn-sm w-100 text-white border-0"
+                    style="background:#0a5c4a;">
                     + Start New Chat
                 </button>
             </form>
@@ -29,9 +36,9 @@
         <div class="overflow-auto flex-grow-1" style="min-height: 0;">
             @forelse($chats as $c)
                 <a href="{{ route('citizen.chat.show', $c->id) }}"
-                    class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom {{ isset($chat) && $chat->id === $c->id ? 'bg-primary bg-opacity-10' : '' }} hover-bg-light">
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
-                        style="width:40px;height:40px;font-size:14px;flex-shrink:0;">
+                    class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom hover-bg-light {{ isset($chat) && $chat->id === $c->id ? 'citizen-chat-list-active' : '' }}">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+                        style="width:40px;height:40px;font-size:14px;flex-shrink:0;background:#0a5c4a;">
                         {{ strtoupper(substr($c->office->name, 0, 2)) }}
                     </div>
                     <div class="overflow-hidden">
@@ -52,8 +59,8 @@
         @if(isset($chat))
             <!-- Chat Header -->
             <div class="bg-white border-bottom px-4 py-3 d-flex align-items-center gap-3 flex-shrink-0">
-                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
-                    style="width:40px;height:40px;font-size:14px;flex-shrink:0;">
+                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+                    style="width:40px;height:40px;font-size:14px;flex-shrink:0;background:#0a5c4a;">
                     {{ strtoupper(substr($chat->office->name, 0, 2)) }}
                 </div>
                 <div>
@@ -70,7 +77,7 @@
                             data-message-id="{{ $message->id }}"
                             style="max-width:60%;
                             {{ $message->sender_id === auth()->id()
-                                ? 'background:#4f46e5;color:white;border-bottom-right-radius:4px!important;'
+                                ? 'background:#0a5c4a;color:white;border-bottom-right-radius:4px!important;'
                                 : 'background:white;color:#1f2937;border-bottom-left-radius:4px!important;' }}">
                             <p class="mb-1 small">{{ $message->content }}</p>
                             <p class="mb-0 opacity-75" style="font-size:11px;">
@@ -89,7 +96,8 @@
                     @csrf
                     <input type="text" name="content" placeholder="Type a message..." required
                         class="form-control rounded-pill" />
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">Send</button>
+                    <button type="submit" class="btn rounded-pill px-4 text-white border-0"
+                        style="background:#0a5c4a;">Send</button>
                 </form>
             </div>
 

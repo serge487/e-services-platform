@@ -16,8 +16,8 @@
             @forelse($chats as $c)
                 <a href="{{ route('municipality.chat.show', $c->id) }}"
                     class="d-flex align-items-center gap-3 p-3 text-decoration-none border-bottom {{ isset($chat) && $chat->id === $c->id ? 'bg-primary bg-opacity-10' : '' }}">
-                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
-                        style="width:40px;height:40px;font-size:14px;flex-shrink:0;">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+                        style="width:40px;height:40px;font-size:14px;flex-shrink:0;background:#1a3c5e;">
                         {{ strtoupper(substr($c->citizen->name, 0, 2)) }}
                     </div>
                     <div class="overflow-hidden">
@@ -38,8 +38,8 @@
         @if(isset($chat))
             <!-- Chat Header -->
             <div class="bg-white border-bottom px-4 py-3 d-flex align-items-center gap-3 flex-shrink-0">
-                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold"
-                    style="width:40px;height:40px;font-size:14px;flex-shrink:0;">
+                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+                    style="width:40px;height:40px;font-size:14px;flex-shrink:0;background:#1a3c5e;">
                     {{ strtoupper(substr($chat->citizen->name, 0, 2)) }}
                 </div>
                 <div>
@@ -56,7 +56,7 @@
                             data-message-id="{{ $message->id }}"
                             style="max-width:60%;
                             {{ $message->sender_id === auth()->id()
-                                ? 'background:#198754;color:white;border-bottom-right-radius:4px!important;'
+                                ? 'background:#1a3c5e;color:white;border-bottom-right-radius:4px!important;'
                                 : 'background:white;color:#1f2937;border-bottom-left-radius:4px!important;' }}">
                             <p class="mb-1 small">{{ $message->content }}</p>
                             <p class="mb-0 opacity-75" style="font-size:11px;">
@@ -75,7 +75,8 @@
                     @csrf
                     <input type="text" name="content" placeholder="Type a message..." required
                         class="form-control rounded-pill" />
-                    <button type="submit" class="btn btn-success rounded-pill px-4">Send</button>
+                    <button type="submit" class="btn rounded-pill px-4 text-white border-0"
+                        style="background:#1a3c5e;">Send</button>
                 </form>
             </div>
 
