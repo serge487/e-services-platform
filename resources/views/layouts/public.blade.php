@@ -357,5 +357,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 @stack('scripts')
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 </body>
 </html>

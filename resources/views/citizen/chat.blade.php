@@ -67,6 +67,7 @@
                 @forelse($chat->messages as $message)
                     <div class="d-flex {{ $message->sender_id === auth()->id() ? 'justify-content-end' : 'justify-content-start' }}">
                         <div class="px-3 py-2 rounded-3 shadow-sm"
+                            data-message-id="{{ $message->id }}"
                             style="max-width:60%;
                             {{ $message->sender_id === auth()->id()
                                 ? 'background:#4f46e5;color:white;border-bottom-right-radius:4px!important;'
@@ -78,13 +79,13 @@
                         </div>
                     </div>
                 @empty
-                    <div class="text-center text-muted mt-5">No messages yet. Say hello! 👋</div>
+                    <div id="messages-empty-hint" class="text-center text-muted mt-5">No messages yet. Say hello! 👋</div>
                 @endforelse
             </div>
 
             <!-- Message Input -->
             <div class="bg-white border-top p-3">
-                <form method="POST" action="{{ route('citizen.chat.send', $chat->id) }}" class="d-flex gap-2">
+                <form id="chat-send-form" method="POST" action="{{ route('citizen.chat.send', $chat->id) }}" class="d-flex gap-2" autocomplete="off">
                     @csrf
                     <input type="text" name="content" placeholder="Type a message..." required
                         class="form-control rounded-pill" />
@@ -104,9 +105,16 @@
 
 </div>
 
-<script>
-    const messages = document.getElementById('messages');
-    if (messages) messages.scrollTop = messages.scrollHeight;
-</script>
+@if(isset($chat))
+    @push('scripts')
+        <script>
+            window.chatRealtimeConfig = {
+                chatId: {{ (int) $chat->id }},
+                currentUserId: {{ (int) auth()->id() }},
+                theme: 'citizen',
+            };
+        </script>
+    @endpush
+@endif
 
 @endsection
