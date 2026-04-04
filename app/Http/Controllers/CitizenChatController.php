@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatMessageSent;
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\Office;
@@ -32,28 +33,29 @@ class CitizenChatController extends Controller
     /**
      * Start or get existing chat with an office
      */
-   public function startOrGetChat(Request $request)
-{
-    $request->validate([
-        'office_id' => 'required|exists:offices,id',
-    ]);
+    public function startOrGetChat(Request $request)
+    {
+        $request->validate([
+            'office_id' => 'required|exists:offices,id',
+        ]);
 
-    $user = Auth::user();
+        $user = Auth::user();
 
-    // Find existing chat or create new one
-    $chat = Chat::where('citizen_id', $user->id)
-        ->where('office_id', $request->office_id)
-        ->first();
+        // Find existing chat or create new one
+        $chat = Chat::where('citizen_id', $user->id)
+            ->where('office_id', $request->office_id)
+            ->first();
 
-    if (!$chat) {
-        $chat = new Chat();
-        $chat->citizen_id = $user->id;
-        $chat->office_id = $request->office_id;
-        $chat->save();
+        if (! $chat) {
+            $chat = new Chat;
+            $chat->citizen_id = $user->id;
+            $chat->office_id = $request->office_id;
+            $chat->save();
+        }
+
+        return redirect()->route('citizen.chat.show', $chat->id);
     }
 
-    return redirect()->route('citizen.chat.show', $chat->id);
-}
     /**
      * Show a specific chat
      */
@@ -84,6 +86,38 @@ class CitizenChatController extends Controller
     }
 
     /**
+     * Return new messages after an id (HTTP fallback when WebSockets are unavailable).
+     */
+    public function poll(Request $request, int $chatId)
+    {
+        $afterId = max(0, (int) $request->query('after', 0));
+
+        $user = Auth::user();
+
+        $chat = Chat::where('id', $chatId)
+            ->where('citizen_id', $user->id)
+            ->firstOrFail();
+
+        $messages = ChatMessage::query()
+            ->where('chat_id', $chat->id)
+            ->where('id', '>', $afterId)
+            ->with('sender')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'messages' => $messages->map(fn (ChatMessage $m) => [
+                'id' => $m->id,
+                'chat_id' => $m->chat_id,
+                'sender_id' => $m->sender_id,
+                'content' => $m->content,
+                'created_at' => $m->created_at->toIso8601String(),
+                'sender_name' => $m->sender?->name ?? '',
+            ])->values()->all(),
+        ]);
+    }
+
+    /**
      * Send a message
      */
     public function sendMessage(Request $request, $chatId)
@@ -98,13 +132,29 @@ class CitizenChatController extends Controller
             ->where('citizen_id', $user->id)
             ->firstOrFail();
 
-        ChatMessage::create([
-            'chat_id'   => $chat->id,
+        $message = ChatMessage::create([
+            'chat_id' => $chat->id,
             'sender_id' => $user->id,
-            'content'   => $request->content,
+            'content' => $request->content,
         ]);
 
         $chat->touch();
+
+        $message->load('sender');
+        broadcast(new ChatMessageSent($message));
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => [
+                    'id' => $message->id,
+                    'chat_id' => $message->chat_id,
+                    'sender_id' => $message->sender_id,
+                    'content' => $message->content,
+                    'created_at' => $message->created_at->toIso8601String(),
+                    'sender_name' => $message->sender->name,
+                ],
+            ]);
+        }
 
         return back();
     }

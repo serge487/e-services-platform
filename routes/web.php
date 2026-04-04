@@ -21,7 +21,9 @@
 use App\Http\Controllers\Auth\CitizenIdentityVerificationController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\CitizenChatController;
 use App\Http\Controllers\Municipality\CategoryController;
+use App\Http\Controllers\Municipality\ChatController;
 use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\MunicipalitySessionController;
 use App\Http\Controllers\Municipality\OfficeProfileController;
@@ -93,7 +95,6 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
     Route::post('/identity-verification/confirm', [CitizenIdentityVerificationController::class, 'confirm'])
         ->name('identity-verification.confirm');
 
-        
     // ── 2FA ──────────────────────────────────────────────────────────────
     Route::get('/2fa/setup', [TwoFactorController::class, 'setup'])->name('2fa.setup');
     Route::post('/2fa/enable', [TwoFactorController::class, 'enable'])->name('2fa.enable');
@@ -104,22 +105,26 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
 
     // ── Gated citizen app pages (identity verified + 2FA unlocked) ────────
     Route::middleware(['citizen.gate'])->group(function () {
-Route::get('/dashboard', function () {
-    if (auth()->user()->role !== 'citizen') {
-        abort(403);
-    }
-    // Citizens land on the public portal with their stats unlocked
-    return redirect()->route('portal');
-})->name('dashboard');
+        Route::get('/dashboard', function () {
+            if (auth()->user()->role !== 'citizen') {
+                abort(403);
+            }
+
+            // Citizens land on the public portal with their stats unlocked
+            return redirect()->route('portal');
+        })->name('dashboard');
 
         Route::get('/services', fn () => view('citizen.services'))->name('services');
 
         // Backward-compatible alias — older links using singular route name still work
         Route::get('/service', fn () => redirect()->route('citizen.services'))->name('service');
- Route::get('/chat', [App\Http\Controllers\CitizenChatController::class, 'index'])->name('chat');
-Route::post('/chat/start', [App\Http\Controllers\CitizenChatController::class, 'startOrGetChat'])->name('chat.start');
-Route::get('/chat/{chatId}', [App\Http\Controllers\CitizenChatController::class, 'show'])->name('chat.show');
-Route::post('/chat/{chatId}/send', [App\Http\Controllers\CitizenChatController::class, 'sendMessage'])->name('chat.send');
+        Route::get('/chat', [CitizenChatController::class, 'index'])->name('chat');
+        Route::post('/chat/start', [CitizenChatController::class, 'startOrGetChat'])->name('chat.start');
+        Route::get('/chat/{chatId}', [CitizenChatController::class, 'show'])->name('chat.show');
+        Route::get('/chat/{chatId}/poll', [CitizenChatController::class, 'poll'])
+            ->middleware('prevent.cache')
+            ->name('chat.poll');
+        Route::post('/chat/{chatId}/send', [CitizenChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
         Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
         Route::get('/notifications', fn () => view('citizen.notifications'))->name('notifications');
@@ -174,10 +179,13 @@ Route::prefix('municipality')
         // ── Appointments, feedback, chat (shells) ─────────────────────────
         Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
-        Route::get('/chat', [App\Http\Controllers\Municipality\ChatController::class, 'index'])->name('chat');
-        Route::get('/chat/{chatId}', [App\Http\Controllers\Municipality\ChatController::class, 'show'])->name('chat.show');
-        Route::post('/chat/{chatId}/send', [App\Http\Controllers\Municipality\ChatController::class, 'sendMessage'])->name('chat.send');
-        
+        Route::get('/chat', [ChatController::class, 'index'])->name('chat');
+        Route::get('/chat/{chatId}', [ChatController::class, 'show'])->name('chat.show');
+        Route::get('/chat/{chatId}/poll', [ChatController::class, 'poll'])
+            ->middleware('prevent.cache')
+            ->name('chat.poll');
+        Route::post('/chat/{chatId}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
+
         // ── Municipality admin only: edit office profile + manage catalog ──
         Route::middleware(['municipality.admin'])->group(function () {
 
