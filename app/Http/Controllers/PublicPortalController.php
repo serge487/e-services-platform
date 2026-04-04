@@ -49,34 +49,29 @@ class PublicPortalController extends Controller
 
         // JSON-safe data for Leaflet markers
         $officesForMap = $offices->map(fn ($office) => [
-            'id'        => $office->id,
-            'name'      => $office->name,
-            'address'   => $office->address,
-            'latitude'  => (float) $office->latitude,
+            'id' => $office->id,
+            'name' => $office->name,
+            'address' => $office->address,
+            'latitude' => (float) $office->latitude,
             'longitude' => (float) $office->longitude,
-            'url'       => route('portal.office', $office, absolute: false),
+            'url' => route('portal.office', $office, absolute: false),
         ]);
 
         $searchQuery = $request->query('search', '');
 
         // Filter list by search — map always shows all pins
         $filteredOffices = $searchQuery
-            ? $offices->filter(fn ($office) =>
-                str_contains(strtolower($office->name), strtolower($searchQuery)) ||
+            ? $offices->filter(fn ($office) => str_contains(strtolower($office->name), strtolower($searchQuery)) ||
                 str_contains(strtolower($office->address), strtolower($searchQuery)) ||
                 str_contains(strtolower($office->municipality->name ?? ''), strtolower($searchQuery))
-              )->values()
+            )->values()
             : $offices;
-
-        // Citizen personal stats — only loaded when a citizen is logged in
-        $citizenStats = $this->loadCitizenStats();
 
         return view('public.portal', compact(
             'offices',
             'filteredOffices',
             'officesForMap',
             'searchQuery',
-            'citizenStats'
         ));
     }
 
@@ -92,42 +87,16 @@ class PublicPortalController extends Controller
 
         $workingHours = $this->normalizeWorkingHours($office->working_hours, $days);
 
-        $citizenStats = $this->loadCitizenStats();
-
         return view('public.office-detail', compact(
             'office',
             'workingHours',
             'days',
-            'citizenStats'
         ));
     }
 
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
-
-    /**
-     * Load citizen-specific stats for the navbar pills.
-     * Returns null if no citizen is logged in.
-     */
-    private function loadCitizenStats(): ?array
-    {
-        if (! Auth::check() || Auth::user()->role !== 'citizen') {
-            return null;
-        }
-
-        $citizen = Auth::user();
-
-        return [
-            'active_requests'       => $citizen->serviceRequests()
-                                        ->whereNotIn('status', ['Completed', 'Rejected'])
-                                        ->count(),
-            'upcoming_appointments' => $citizen->appointments()
-                                        ->where('status', 'scheduled')
-                                        ->count(),
-            'unread_notifications'  => $citizen->unreadNotifications()->count(),
-        ];
-    }
 
     /**
      * Normalize working hours — ensures all 7 days are present with defaults.
@@ -138,8 +107,8 @@ class PublicPortalController extends Controller
 
         foreach ($days as $day) {
             $normalized[$day] = [
-                'is_open'    => $workingHours[$day]['is_open']    ?? false,
-                'open_time'  => $workingHours[$day]['open_time']  ?? '08:00',
+                'is_open' => $workingHours[$day]['is_open'] ?? false,
+                'open_time' => $workingHours[$day]['open_time'] ?? '08:00',
                 'close_time' => $workingHours[$day]['close_time'] ?? '16:00',
             ];
         }

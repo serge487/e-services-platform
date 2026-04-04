@@ -256,7 +256,7 @@
                     Appointments
                 </div>
                 <div class="wc-stat {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}">
-                    <span class="wc-count">{{ $citizenStats['unread_notifications'] ?? 0 }}</span>
+                    <span class="wc-count" data-unread-notifications>{{ $citizenStats['unread_notifications'] ?? 0 }}</span>
                     Notifications
                 </div>
             </div>

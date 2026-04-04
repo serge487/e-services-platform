@@ -6,6 +6,7 @@ use App\Events\ChatMessageSent;
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\Office;
+use App\Services\ChatMessageNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -141,6 +142,8 @@ class CitizenChatController extends Controller
         $chat->touch();
 
         $message->load('sender');
+        $chat->load('office');
+        ChatMessageNotifier::notifyRecipients($chat, $user, $message);
         broadcast(new ChatMessageSent($message));
 
         if ($request->expectsJson()) {

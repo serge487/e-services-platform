@@ -1,10 +1,10 @@
-@extends('layouts.public')
+@extends('municipality.layouts.app')
 @section('title', 'Notifications')
 @section('page-title', 'Notifications')
 @section('content')
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-bottom py-3">
-        <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Your notifications</h6>
+        <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Notifications</h6>
     </div>
     <div class="list-group list-group-flush">
         @forelse($notifications as $notification)
