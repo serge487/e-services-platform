@@ -101,7 +101,6 @@
                 pollUrl: @json(route('municipality.chat.poll', $chat->id, absolute: false)),
             };
         </script>
-        <script src="{{ asset('js/chat-thread.js') }}?v=2" defer></script>
     @endpush
 @endif
 

@@ -115,8 +115,6 @@
                 pollUrl: @json(route('citizen.chat.poll', $chat->id, absolute: false)),
             };
         </script>
-        {{-- No Vite/npm required: chat runs from public/js (works with php artisan serve only). --}}
-        <script src="{{ asset('js/chat-thread.js') }}?v=2" defer></script>
     @endpush
 @endif
 
