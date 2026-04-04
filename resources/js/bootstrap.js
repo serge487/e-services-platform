@@ -18,6 +18,7 @@ const wsHost =
     import.meta.env.VITE_REVERB_HOST || bc?.wsHost || window.location.hostname;
 
 if (reverbKey) {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     window.Echo = new Echo({
         broadcaster: 'reverb',
         key: reverbKey,
@@ -26,6 +27,7 @@ if (reverbKey) {
         wssPort: port,
         forceTLS: tls,
         enabledTransports: ['ws', 'wss'],
+        authEndpoint: origin ? `${origin}/broadcasting/auth` : '/broadcasting/auth',
         auth: {
             headers: {
                 'X-CSRF-TOKEN':

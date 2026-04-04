@@ -53,6 +53,19 @@ function scrollChatToBottom(messagesEl) {
     messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
+function maxSeenMessageId(messagesEl) {
+    const raw = messagesEl.dataset.seenIds;
+    if (!raw) {
+        return 0;
+    }
+    try {
+        const ids = JSON.parse(raw);
+        return ids.length ? Math.max(...ids) : 0;
+    } catch {
+        return 0;
+    }
+}
+
 export function initChatRealtime() {
     const cfg = window.chatRealtimeConfig;
     if (!cfg) {
@@ -110,6 +123,39 @@ export function initChatRealtime() {
             appendMessageBubble(messagesEl, payload, fromSelf, cfg);
             scrollChatToBottom(messagesEl);
         });
+    }
+
+    if (cfg.pollUrl) {
+        const poll = async () => {
+            try {
+                const after = maxSeenMessageId(messagesEl);
+                const url = new URL(cfg.pollUrl, window.location.origin);
+                url.searchParams.set('after', String(after));
+                const res = await fetch(url.toString(), {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) {
+                    return;
+                }
+                const data = await res.json();
+                const list = data.messages ?? [];
+                for (const m of list) {
+                    const fromSelf = m.sender_id === cfg.currentUserId;
+                    appendMessageBubble(messagesEl, m, fromSelf, cfg);
+                }
+                if (list.length) {
+                    scrollChatToBottom(messagesEl);
+                }
+            } catch {
+                // ignore network errors
+            }
+        };
+        window.setInterval(poll, 2500);
+        poll();
     }
 
     scrollChatToBottom(messagesEl);

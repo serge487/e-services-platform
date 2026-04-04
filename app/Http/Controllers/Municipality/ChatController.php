@@ -66,6 +66,40 @@ class ChatController extends Controller
     }
 
     /**
+     * Return new messages after an id (HTTP fallback when WebSockets are unavailable).
+     */
+    public function poll(Request $request, int $chatId)
+    {
+        $afterId = max(0, (int) $request->query('after', 0));
+
+        $user = Auth::user();
+
+        $office = Office::where('municipality_id', $user->municipality_id)->firstOrFail();
+
+        $chat = Chat::where('id', $chatId)
+            ->where('office_id', $office->id)
+            ->firstOrFail();
+
+        $messages = ChatMessage::query()
+            ->where('chat_id', $chat->id)
+            ->where('id', '>', $afterId)
+            ->with('sender')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'messages' => $messages->map(fn (ChatMessage $m) => [
+                'id' => $m->id,
+                'chat_id' => $m->chat_id,
+                'sender_id' => $m->sender_id,
+                'content' => $m->content,
+                'created_at' => $m->created_at->toIso8601String(),
+                'sender_name' => $m->sender?->name ?? '',
+            ])->values()->all(),
+        ]);
+    }
+
+    /**
      * Send a message
      */
     public function sendMessage(Request $request, $chatId)

@@ -112,6 +112,7 @@
                 chatId: {{ (int) $chat->id }},
                 currentUserId: {{ (int) auth()->id() }},
                 theme: 'citizen',
+                pollUrl: @json(route('citizen.chat.poll', $chat->id, absolute: false)),
             };
         </script>
     @endpush
