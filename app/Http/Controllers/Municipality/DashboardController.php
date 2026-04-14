@@ -3,11 +3,75 @@
 namespace App\Http\Controllers\Municipality;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
+use App\Models\ServiceRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        return view('municipality.dashboard');
+        $officeIds = Auth::user()->accessibleOfficeIds();
+
+        $stats = $this->buildStats($officeIds);
+        $todayAppointments = $this->todayAppointments($officeIds);
+
+        return view('municipality.dashboard', compact('stats', 'todayAppointments'));
+    }
+
+    public function live()
+    {
+        $officeIds = Auth::user()->accessibleOfficeIds();
+
+        $stats = $this->buildStats($officeIds);
+        $todayAppointments = $this->todayAppointments($officeIds);
+
+        return response()->json([
+            'stats' => $stats,
+            'today_appointments_html' => view('municipality.partials.dashboard-today-appointments', compact('todayAppointments'))->render(),
+        ]);
+    }
+
+    private function buildStats(array $officeIds): array
+    {
+        $totalRequests = ServiceRequest::query()
+            ->whereHas('service', fn ($q) => $q->whereIn('office_id', $officeIds))
+            ->count();
+
+        $pendingRequests = ServiceRequest::query()
+            ->whereHas('service', fn ($q) => $q->whereIn('office_id', $officeIds))
+            ->where('status', 'Pending')
+            ->count();
+
+        $appointmentsToday = Appointment::query()
+            ->whereHas('officerTimeSlot', function ($q) use ($officeIds): void {
+                $q->whereIn('office_id', $officeIds)
+                    ->whereDate('slot_date', now()->toDateString());
+            })
+            ->whereIn('status', ['scheduled', 'confirmed'])
+            ->count();
+
+        $unreadMessages = Auth::user()->unreadNotifications()->count();
+
+        return [
+            'total_requests' => $totalRequests,
+            'pending' => $pendingRequests,
+            'appointments_today' => $appointmentsToday,
+            'unread_messages' => $unreadMessages,
+        ];
+    }
+
+    private function todayAppointments(array $officeIds)
+    {
+        return Appointment::query()
+            ->with(['citizen', 'officerTimeSlot.office', 'officerTimeSlot.officer'])
+            ->whereHas('officerTimeSlot', function ($q) use ($officeIds): void {
+                $q->whereIn('office_id', $officeIds)
+                    ->whereDate('slot_date', now()->toDateString());
+            })
+            ->latest()
+            ->limit(10)
+            ->get();
     }
 }

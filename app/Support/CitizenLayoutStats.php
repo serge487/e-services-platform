@@ -16,7 +16,7 @@ class CitizenLayoutStats
                 ->whereNotIn('status', ['Completed', 'Rejected'])
                 ->count(),
             'upcoming_appointments' => $citizen->appointments()
-                ->where('status', 'scheduled')
+                ->whereIn('status', ['scheduled', 'confirmed'])
                 ->count(),
             'unread_notifications' => $citizen->unreadNotifications()->count(),
         ];
