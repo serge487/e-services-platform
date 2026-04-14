@@ -22,7 +22,9 @@ use App\Http\Controllers\Auth\CitizenIdentityVerificationController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\CitizenChatController;
+use App\Http\Controllers\Citizen\AppointmentController as CitizenAppointmentController;
 use App\Http\Controllers\CitizenNotificationController;
+use App\Http\Controllers\Municipality\AppointmentController as MunicipalityAppointmentController;
 use App\Http\Controllers\Municipality\CategoryController;
 use App\Http\Controllers\Municipality\ChatController;
 use App\Http\Controllers\Municipality\DashboardController;
@@ -128,7 +130,11 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
             ->name('chat.poll');
         Route::post('/chat/{chatId}/send', [CitizenChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
-        Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
+        Route::get('/appointments', [CitizenAppointmentController::class, 'index'])->name('appointments');
+        Route::get('/appointments/live', [CitizenAppointmentController::class, 'live'])->name('appointments.live');
+        Route::post('/appointments', [CitizenAppointmentController::class, 'store'])->name('appointments.store');
+        Route::patch('/appointments/{appointment}/cancel', [CitizenAppointmentController::class, 'cancel'])
+            ->name('appointments.cancel');
         Route::get('/notifications', [CitizenNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [CitizenNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::delete('/notifications/{id}', [CitizenNotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -156,6 +162,7 @@ Route::prefix('municipality')
 
         // ── Dashboard ─────────────────────────────────────────────────────
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/live', [DashboardController::class, 'live'])->name('dashboard.live');
 
         // ── 2FA ───────────────────────────────────────────────────────────
         Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])->name('2fa.setup');
@@ -182,7 +189,18 @@ Route::prefix('municipality')
             ->name('requests.delete-document');
 
         // ── Appointments, feedback, chat (shells) ─────────────────────────
-        Route::get('/appointments', fn () => view('municipality.appointments'))->name('appointments');
+        Route::get('/appointments', [MunicipalityAppointmentController::class, 'index'])->name('appointments');
+        Route::get('/appointments/live', [MunicipalityAppointmentController::class, 'live'])->name('appointments.live');
+        Route::post('/appointments/slots', [MunicipalityAppointmentController::class, 'storeSlot'])
+            ->name('appointments.slots.store');
+        Route::delete('/appointments/slots/{officerTimeSlot}', [MunicipalityAppointmentController::class, 'destroySlot'])
+            ->name('appointments.slots.destroy');
+        Route::patch('/appointments/{appointment}/status', [MunicipalityAppointmentController::class, 'updateStatus'])
+            ->name('appointments.update-status');
+        Route::delete('/appointments/{appointment}', [MunicipalityAppointmentController::class, 'destroy'])
+            ->name('appointments.destroy');
+        Route::post('/appointments/{appointment}/remind', [MunicipalityAppointmentController::class, 'sendReminder'])
+            ->name('appointments.remind');
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         Route::get('/notifications', [MunicipalityNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [MunicipalityNotificationController::class, 'openChat'])->name('notifications.chat');
