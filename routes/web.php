@@ -131,6 +131,8 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::get('/appointments', fn () => view('citizen.appointments'))->name('appointments');
         Route::get('/notifications', [CitizenNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [CitizenNotificationController::class, 'openChat'])->name('notifications.chat');
+        Route::delete('/notifications/{id}', [CitizenNotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::delete('/notifications', [CitizenNotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
         Route::get('/history', fn () => view('citizen.history'))->name('history');
         Route::get('/profile', fn () => view('citizen.profile'))->name('profile');
     });
@@ -184,11 +186,15 @@ Route::prefix('municipality')
         Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
         Route::get('/notifications', [MunicipalityNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [MunicipalityNotificationController::class, 'openChat'])->name('notifications.chat');
+        Route::delete('/notifications/{id}', [MunicipalityNotificationController::class, 'destroy'])->name('notifications.destroy');
+        Route::delete('/notifications', [MunicipalityNotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
         Route::get('/chat', [ChatController::class, 'index'])->name('chat');
         Route::get('/chat/{chatId}', [ChatController::class, 'show'])->name('chat.show');
         Route::get('/chat/{chatId}/poll', [ChatController::class, 'poll'])
             ->middleware('prevent.cache')
             ->name('chat.poll');
+            Route::post('/chat/{chatId}/mute', [ChatController::class, 'mute'])->name('chat.mute');
+            Route::post('/chat/{chatId}/unmute', [ChatController::class, 'unmute'])->name('chat.unmute');
         Route::post('/chat/{chatId}/send', [ChatController::class, 'sendMessage'])->name('chat.send');
 
         // ── Municipality admin only: edit office profile + manage catalog ──

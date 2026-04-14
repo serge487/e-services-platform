@@ -1,26 +1,25 @@
 <?php
-
 namespace App\Services;
-
 use App\Events\UnreadNotificationsCountChanged;
 use App\Events\UserNotificationCreated;
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\User;
 use App\Notifications\NewChatMessageNotification;
-
 class ChatMessageNotifier
 {
     public static function notifyRecipients(Chat $chat, User $sender, ChatMessage $message): void
     {
         $chat->loadMissing('office', 'citizen');
-
         $office = $chat->office;
         if (! $office) {
             return;
         }
-
         if ((int) $sender->id === (int) $chat->citizen_id) {
+            // If chat is muted, don't notify municipality staff
+            if ($chat->isMuted()) {
+                return;
+            }
             $recipients = User::query()
                 ->where('municipality_id', $office->municipality_id)
                 ->where(function ($q) use ($office) {
@@ -36,20 +35,16 @@ class ChatMessageNotifier
                 ->where('id', $chat->citizen_id)
                 ->get();
         }
-
         foreach ($recipients as $recipient) {
             if ((int) $recipient->id === (int) $sender->id) {
                 continue;
             }
-
             $recipient->notify(new NewChatMessageNotification($message));
-
             $dbNotification = $recipient->notifications()->latest('created_at')->first();
             if ($dbNotification) {
                 $openPath = $recipient->role === 'citizen'
                     ? route('citizen.notifications.chat', ['id' => $dbNotification->id], absolute: false)
                     : route('municipality.notifications.chat', ['id' => $dbNotification->id], absolute: false);
-
                 broadcast(new UserNotificationCreated(
                     $recipient->id,
                     $dbNotification->id,
@@ -58,7 +53,6 @@ class ChatMessageNotifier
                     $openPath,
                 ));
             }
-
             broadcast(new UnreadNotificationsCountChanged(
                 $recipient->id,
                 $recipient->unreadNotifications()->count()
