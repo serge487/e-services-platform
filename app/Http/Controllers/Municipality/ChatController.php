@@ -13,35 +13,36 @@ use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
-    /**
-     * Show all citizen chats for this office
-     */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
-        // Get the office for this municipality user
         $office = Office::where('municipality_id', $user->municipality_id)->first();
 
         if (! $office) {
             return view('municipality.chat', [
                 'chats' => collect(),
                 'office' => null,
+                'search' => '',
             ]);
         }
 
+        $search = $request->query('search', '');
+
         $chats = Chat::where('office_id', $office->id)
             ->with(['citizen', 'latestMessage'])
+            ->when($search, function ($query) use ($search) {
+                $query->whereHas('citizen', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                });
+            })
             ->orderByDesc('updated_at')
             ->get();
 
-        return view('municipality.chat', compact('chats', 'office'));
+        return view('municipality.chat', compact('chats', 'office', 'search'));
     }
 
-    /**
-     * Show a specific chat
-     */
-    public function show($chatId)
+    public function show(Request $request, $chatId)
     {
         $user = Auth::user();
 
@@ -52,23 +53,44 @@ class ChatController extends Controller
             ->with(['citizen', 'messages.sender'])
             ->firstOrFail();
 
+        $search = $request->query('search', '');
+
         $chats = Chat::where('office_id', $office->id)
             ->with(['citizen', 'latestMessage'])
+            ->when($search, function ($query) use ($search) {
+                $query->whereHas('citizen', function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%');
+                });
+            })
             ->orderByDesc('updated_at')
             ->get();
 
-        // Mark messages as read
         ChatMessage::where('chat_id', $chatId)
             ->where('sender_id', '!=', $user->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return view('municipality.chat', compact('chat', 'chats', 'office'));
+        return view('municipality.chat', compact('chat', 'chats', 'office', 'search'));
     }
 
-    /**
-     * Return new messages after an id (HTTP fallback when WebSockets are unavailable).
-     */
+    public function mute($chatId)
+    {
+        $user = Auth::user();
+        $office = Office::where('municipality_id', $user->municipality_id)->firstOrFail();
+        $chat = Chat::where('id', $chatId)->where('office_id', $office->id)->firstOrFail();
+        $chat->update(['muted_at' => now()]);
+        return response()->json(['muted' => true]);
+    }
+
+    public function unmute($chatId)
+    {
+        $user = Auth::user();
+        $office = Office::where('municipality_id', $user->municipality_id)->firstOrFail();
+        $chat = Chat::where('id', $chatId)->where('office_id', $office->id)->firstOrFail();
+        $chat->update(['muted_at' => null]);
+        return response()->json(['muted' => false]);
+    }
+
     public function poll(Request $request, int $chatId)
     {
         $afterId = max(0, (int) $request->query('after', 0));
@@ -100,9 +122,6 @@ class ChatController extends Controller
         ]);
     }
 
-    /**
-     * Send a message
-     */
     public function sendMessage(Request $request, $chatId)
     {
         $request->validate([

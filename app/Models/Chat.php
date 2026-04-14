@@ -9,7 +9,20 @@ class Chat extends Model
     protected $fillable = [
         'citizen_id',
         'office_id',
+        'muted_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'muted_at' => 'datetime',
+        ];
+    }
+
+    public function isMuted(): bool
+    {
+        return $this->muted_at !== null;
+    }
 
     public function citizen()
     {

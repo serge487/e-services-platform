@@ -20,16 +20,28 @@ class EnsureCitizenSessionGate
         if (! $user->is_active) {
             Auth::logout();
 
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Account deactivated.'], 403);
+            }
+
             return redirect()
                 ->route('citizen.login')
                 ->withErrors(['email' => 'Account deactivated.']);
         }
 
         if (! $user->identity_verified_at && ! config('citizen.skip_identity_verification_gate')) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Identity not verified.'], 403);
+            }
+
             return redirect()->route('citizen.identity-verification.show');
         }
 
         if (! $request->session()->get('citizen_session_unlocked')) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Session not unlocked.'], 401);
+            }
+
             if ($user->two_factor_confirmed_at) {
                 return redirect()->route('citizen.2fa.verify');
             }
