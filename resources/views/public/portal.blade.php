@@ -246,19 +246,23 @@
                 <div class="wc-title">Welcome back, {{ Auth::user()->name }} 👋</div>
                 <div class="wc-sub">Browse offices and request services below.</div>
             </div>
-            <div class="wc-stats">
-                <div class="wc-stat {{ ($citizenStats['active_requests'] ?? 0) > 0 ? 'has-items' : '' }}">
-                    <span class="wc-count">{{ $citizenStats['active_requests'] ?? 0 }}</span>
-                    Active Requests
+            {{-- ADDED: wrap stats + settings icon together on the right --}}
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div class="wc-stats">
+                    <div class="wc-stat {{ ($citizenStats['active_requests'] ?? 0) > 0 ? 'has-items' : '' }}">
+                        <span class="wc-count">{{ $citizenStats['active_requests'] ?? 0 }}</span>
+                        Active Requests
+                    </div>
+                    <div class="wc-stat {{ ($citizenStats['upcoming_appointments'] ?? 0) > 0 ? 'has-items' : '' }}">
+                        <span class="wc-count">{{ $citizenStats['upcoming_appointments'] ?? 0 }}</span>
+                        Appointments
+                    </div>
+                    <div class="wc-stat {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}">
+                        <span class="wc-count" data-unread-notifications>{{ $citizenStats['unread_notifications'] ?? 0 }}</span>
+                        Notifications
+                    </div>
                 </div>
-                <div class="wc-stat {{ ($citizenStats['upcoming_appointments'] ?? 0) > 0 ? 'has-items' : '' }}">
-                    <span class="wc-count">{{ $citizenStats['upcoming_appointments'] ?? 0 }}</span>
-                    Appointments
-                </div>
-                <div class="wc-stat {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}">
-                    <span class="wc-count" data-unread-notifications>{{ $citizenStats['unread_notifications'] ?? 0 }}</span>
-                    Notifications
-                </div>
+                
             </div>
         </div>
     @endif
@@ -378,6 +382,98 @@
     </div>
 
 </div>
+
+{{-- ADDED: flash success toast --}}
+@if(session('success'))
+    <div style="position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:0.75rem 1.25rem; border-radius:10px; font-size:0.875rem; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+        ✅ {{ session('success') }}
+    </div>
+@endif
+
+{{-- ADDED: settings modal --}}
+@auth
+    @if(Auth::user()->role === 'citizen')
+    <div
+        id="settings-modal"
+        style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.45); align-items:center; justify-content:center;"
+        onclick="if(event.target===this){ this.style.display='none'; }"
+    >
+        <div style="background:#fff; border-radius:14px; width:100%; max-width:440px; margin:1rem; padding:1.5rem; box-shadow:0 10px 40px rgba(0,0,0,0.15);">
+
+            {{-- Header --}}
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+                <div>
+                    <p style="font-weight:700; font-size:0.95rem; margin:0; color:#111;">Personal Information</p>
+                    <p style="font-size:0.75rem; color:#94a3b8; margin:3px 0 0;">Update your name and phone number</p>
+                </div>
+                <button onclick="document.getElementById('settings-modal').style.display='none'" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:1.2rem; line-height:1;">✕</button>
+            </div>
+
+            {{-- Avatar --}}
+            <div style="display:flex; align-items:center; gap:12px; padding-bottom:1rem; margin-bottom:1rem; border-bottom:1px solid #f1f5f9;">
+                <div style="width:44px; height:44px; border-radius:50%; background:#ecfdf5; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; color:#0a5c4a;">
+                    {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                </div>
+                <div>
+                    <p style="font-size:0.875rem; font-weight:600; margin:0; color:#111;">{{ Auth::user()->name }}</p>
+                    <p style="font-size:0.75rem; color:#94a3b8; margin:2px 0 0;">Citizen ID #{{ Auth::id() }}</p>
+                </div>
+            </div>
+
+            {{-- Form --}}
+            <form action="{{ route('citizen.profile.update') }}" method="POST">
+                @csrf
+                @method('PATCH')
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:6px;">Full name</label>
+                    <input type="text" name="name" value="{{ old('name', Auth::user()->name) }}" required
+                        style="width:100%; height:38px; padding:0 12px; font-size:0.875rem; border:1px solid #e2e8f0; border-radius:8px; box-sizing:border-box; outline:none;"
+                        onfocus="this.style.borderColor='#0a5c4a'" onblur="this.style.borderColor='#e2e8f0'">
+                    @error('name') <p style="font-size:0.72rem; color:#ef4444; margin:4px 0 0;">{{ $message }}</p> @enderror
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                    <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:6px;">Phone number</label>
+                    <input type="tel" name="phone_number" value="{{ old('phone_number', Auth::user()->phone_number) }}" required
+                        style="width:100%; height:38px; padding:0 12px; font-size:0.875rem; border:1px solid #e2e8f0; border-radius:8px; box-sizing:border-box; outline:none;"
+                        onfocus="this.style.borderColor='#0a5c4a'" onblur="this.style.borderColor='#e2e8f0'">
+                    @error('phone_number') <p style="font-size:0.72rem; color:#ef4444; margin:4px 0 0;">{{ $message }}</p> @enderror
+                </div>
+
+                <div style="margin-bottom:1.25rem;">
+                    <label style="display:block; font-size:0.75rem; color:#64748b; margin-bottom:6px;">
+                        Email address
+                        <span style="margin-left:6px; font-size:0.65rem; background:#f1f5f9; color:#94a3b8; padding:2px 6px; border-radius:4px; border:1px solid #e2e8f0;">read-only</span>
+                    </label>
+                    <input type="email" value="{{ Auth::user()->email }}" readonly
+                        style="width:100%; height:38px; padding:0 12px; font-size:0.875rem; border:1px solid #f1f5f9; border-radius:8px; background:#f8fafc; color:#94a3b8; cursor:not-allowed; box-sizing:border-box;">
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button type="button" onclick="document.getElementById('settings-modal').style.display='none'"
+                        style="padding:0 16px; height:36px; font-size:0.8rem; border:1px solid #e2e8f0; border-radius:8px; background:#fff; color:#64748b; cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        style="padding:0 16px; height:36px; font-size:0.8rem; border:none; border-radius:8px; background:#0a5c4a; color:#fff; font-weight:600; cursor:pointer;">
+                        Save changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- ADDED: re-open modal if validation failed --}}
+    @if($errors->any())
+    <script>
+        document.getElementById('settings-modal').style.display = 'flex';
+    </script>
+    @endif
+
+    @endif
+@endauth
+
 @endsection
 
 @push('scripts')

@@ -252,11 +252,12 @@
                     @endif
                 </a>
 
-                <a href="{{ route('citizen.notifications', absolute: false) }}"
-                   class="{{ request()->routeIs('citizen.notifications') ? 'active' : '' }}">
-                    <i class="bi bi-bell"></i> Notifications
-                    <span class="nav-badge alert {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? '' : 'd-none' }}" data-unread-notifications>{{ $citizenStats['unread_notifications'] ?? 0 }}</span>
-                </a>
+               <a href="{{ route('citizen.notifications', absolute: false) }}" class="topbar-stat">
+                        <i class="bi bi-bell"></i>
+                        <span class="count {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}" data-unread-notifications>
+                            {{ $citizenStats['unread_notifications'] ?? 0 }}
+                        </span>
+                    </a>
 
                 <div class="nav-label">More</div>
 
@@ -340,6 +341,14 @@
                             {{ $citizenStats['unread_notifications'] ?? 0 }}
                         </span>
                     </a>
+                    <button
+                        onclick="document.getElementById('settings-modal').style.display='flex'"
+                        title="Edit profile"
+                        class="topbar-stat"
+                        style="background:none; border:none; cursor:pointer;"
+                    >
+                        <i class="bi bi-gear"></i>
+                    </button>
                 @endif
             @endauth
         </div>
