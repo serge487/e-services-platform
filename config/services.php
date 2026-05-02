@@ -1,58 +1,32 @@
 <?php
 
-return [
-
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
-
-    'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
+return[
+    'mailgun' =>[
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
     ],
 
-    'resend' => [
-        'key' => env('RESEND_API_KEY'),
+    'postmark' =>[
+        'token' => env('POSTMARK_TOKEN'),
     ],
 
-    'ses' => [
+    'ses' =>[
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'slack' => [
-        'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
-        ],
+    'google' =>[
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
-'google' => [
-    'client_id'     => env('GOOGLE_CLIENT_ID'),
-    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-    'redirect'      => env('GOOGLE_REDIRECT_URI'),
-],
 
-'facebook' => [
-    'client_id'     => env('FACEBOOK_CLIENT_ID'),
-    'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
-    'redirect'      => env('FACEBOOK_REDIRECT_URI'),
-],
-
-'ocr_space_api_key' => env('OCR_SPACE_API_KEY'),
-
-    // 3-letter code: eng, ara, auto (auto = Engine 2/3 language detection — best for mixed ID cards)
-    'ocr_space_language' => env('OCR_SPACE_LANGUAGE', 'auto'),
-
-    // Optional: English hints under Arabic ID fields (set false to skip external translation calls)
-    'libretranslate_enabled' => filter_var(env('LIBRETRANSLATE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
-    'libretranslate_url' => env('LIBRETRANSLATE_URL', 'https://libretranslate.com'),
-
+    'facebook' =>[
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', '/auth/facebook/callback'),
+    ],
 ];
