@@ -141,6 +141,8 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::delete('/notifications', [CitizenNotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
         Route::get('/history', fn () => view('citizen.history'))->name('history');
         Route::get('/profile', fn () => view('citizen.profile'))->name('profile');
+        Route::get('/profile', fn () => view('citizen.profile'))->name('profile');
+Route::patch('/profile/update', [\App\Http\Controllers\Citizen\CitizenProfileController::class, 'update'])->name('profile.update');
     });
 });
 
