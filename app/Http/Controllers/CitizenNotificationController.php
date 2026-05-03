@@ -66,4 +66,27 @@ public function destroyAll()
 
     return response()->json(['success' => true]);
 }
+public function openServiceRequest(string $id)
+{
+    $user = Auth::user();
+    abort_unless($user->role === 'citizen', 403);
+
+    $notification = $user->notifications()->where('id', $id)->firstOrFail();
+    $serviceRequestId = data_get($notification->data, 'service_request_id');
+    abort_unless($serviceRequestId, 404);
+
+    if ($notification->read_at === null) {
+        $notification->markAsRead();
+        try {
+            broadcast(new UnreadNotificationsCountChanged(
+                $user->id,
+                $user->unreadNotifications()->count()
+            ));
+        } catch (\Exception $e) {
+            // WebSocket not running — non-fatal
+        }
+    }
+
+    return redirect()->route('citizen.service-requests.show', $serviceRequestId);
+}
 }

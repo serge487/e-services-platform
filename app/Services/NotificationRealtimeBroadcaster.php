@@ -19,18 +19,22 @@ class NotificationRealtimeBroadcaster
 
         $openPath = self::openPathFor($user, $notification);
 
-        broadcast(new UserNotificationCreated(
-            $user->id,
-            $notification->id,
-            $notification->data,
-            $notification->created_at->toIso8601String(),
-            $openPath,
-        ));
+       try {
+    broadcast(new UserNotificationCreated(
+        $user->id,
+        $notification->id,
+        $notification->data,
+        $notification->created_at->toIso8601String(),
+        $openPath,
+    ));
 
-        broadcast(new UnreadNotificationsCountChanged(
-            $user->id,
-            $user->unreadNotifications()->count(),
-        ));
+    broadcast(new UnreadNotificationsCountChanged(
+        $user->id,
+        $user->unreadNotifications()->count(),
+    ));
+} catch (\Exception $e) {
+    // WebSocket server not running — non-fatal, notification still saved to DB
+}
     }
 
     private static function openPathFor(User $user, DatabaseNotification $notification): string
