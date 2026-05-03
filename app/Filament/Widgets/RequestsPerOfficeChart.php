@@ -2,9 +2,10 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Municipality;
 use App\Models\Office;
-use App\Models\ServiceRequest;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Database\Eloquent\Builder;
 
 class RequestsPerOfficeChart extends ChartWidget
 {
@@ -12,11 +13,26 @@ class RequestsPerOfficeChart extends ChartWidget
     protected static ?int $sort = 2;
     protected static ?string $maxHeight = '300px';
 
+    // Holds the selected municipality ID
+    public ?string $municipalityId = null;
+
+    // Dropdown filter shown on the widget
+    protected function getFilters(): ?array
+    {
+        $municipalities = Municipality::orderBy('name')->pluck('name', 'id')->toArray();
+
+        return ['' => 'All Municipalities'] + $municipalities;
+    }
+
     protected function getData(): array
     {
         $offices = Office::withCount(['services as requests_count' => function ($query) {
-            $query->join('service_requests', 'services.id', '=', 'service_requests.service_id');
-        }])->get();
+                $query->join('service_requests', 'services.id', '=', 'service_requests.service_id');
+            }])
+            ->when($this->filter, function (Builder $query) {
+                $query->where('municipality_id', $this->filter);
+            })
+            ->get();
 
         return [
             'datasets' => [
