@@ -14,18 +14,21 @@ class Office extends Model
         'contact_info'
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'working_hours' => 'array',
-            'latitude'      => 'decimal:8',
-            'longitude'     => 'decimal:8',
-        ];
-    }
+  // Replace with this:
+protected $casts = [
+    'working_hours' => 'array',
+    'latitude'      => 'decimal:8',
+    'longitude'     => 'decimal:8',
+];
 
     public function municipality(): BelongsTo
     {
         return $this->belongsTo(Municipality::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
     }
 
     public function categories(): HasMany

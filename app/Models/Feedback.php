@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Feedback extends Model
 {
+    protected $table = 'feedbacks';
+
     protected $fillable = [
         'office_id', 'service_id', 'citizen_id',
         'rating', 'citizen_comment', 'office_response',

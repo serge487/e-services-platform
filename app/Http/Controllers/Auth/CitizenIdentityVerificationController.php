@@ -238,7 +238,7 @@ class CitizenIdentityVerificationController extends Controller
         $request->session()->put('citizen_session_unlocked', true);
 
         return redirect()
-            ->route('citizen.dashboard')
+            ->intended(route('citizen.dashboard'))
             ->with('success', 'Identity verified. Welcome to your dashboard.');
     }
 }

@@ -307,6 +307,12 @@
                 $todayHours   = is_array($office->working_hours)
                     ? ($office->working_hours[$todayKey] ?? null)
                     : null;
+                $todayIsOpen = is_array($todayHours)
+                    ? ($todayHours['is_open'] ?? false)
+                    : ($todayHours && $todayHours !== 'closed');
+                $todayLabel = is_array($todayHours)
+                    ? (($todayHours['open_time'] ?? '') . ' - ' . ($todayHours['close_time'] ?? ''))
+                    : $todayHours;
             @endphp
 
             <a href="{{ route('portal.office', $office, absolute: false) }}"
@@ -342,7 +348,7 @@
                         </span>
                     @endif
 
-                    @if($todayHours)
+                    {{-- @if($todayHours)
                         @if($todayHours['is_open'])
                             <span class="badge-hours-open">
                                 <i class="bi bi-clock me-1"></i>
@@ -350,8 +356,19 @@
                             </span>
                         @else
                             <span class="badge-hours-closed">Closed today</span>
-                        @endif
-                    @endif
+                        @endif --}}
+                        @if($todayIsOpen)
+    <span class="badge-hours-open">
+        <i class="bi bi-clock me-1"></i>
+        Today: {{ $todayLabel }}
+    </span>
+@elseif($todayHours)
+    <span class="badge-hours-closed">
+        <i class="bi bi-clock me-1"></i>
+        Closed today
+    </span>
+@endif
+              
                 </div>
             </a>
         @empty

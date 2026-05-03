@@ -62,7 +62,7 @@ class TwoFactorController extends Controller
 
         $request->session()->put('citizen_session_unlocked', true);
 
-        return redirect()->route('citizen.dashboard')->with('success', '2FA enabled successfully!');
+        return redirect()->intended(route('citizen.dashboard'))->with('success', '2FA enabled successfully!');
     }
 
     public function verify()
@@ -98,7 +98,7 @@ class TwoFactorController extends Controller
         $request->session()->put('citizen_session_unlocked', true);
 
         return redirect()
-            ->route('citizen.dashboard')
+            ->intended(route('citizen.dashboard'))
             ->with('warning', '2FA was skipped. Enable CITIZEN_ALLOW_2FA_SKIP only for testing.');
     }
 
@@ -123,6 +123,6 @@ class TwoFactorController extends Controller
 
         $request->session()->put('citizen_session_unlocked', true);
 
-        return redirect()->route('citizen.dashboard');
+        return redirect()->intended(route('citizen.dashboard'));
     }
 }

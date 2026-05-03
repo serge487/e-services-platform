@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Office;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class PublicPortalController extends Controller
 {
@@ -38,6 +40,10 @@ class PublicPortalController extends Controller
             }
 
             // Verified citizens fall through and see the portal with stats
+        }
+
+        if (! Schema::hasTable('offices')) {
+            return redirect()->route('citizen.login');
         }
 
         // Load all offices with coordinates for the map
@@ -92,6 +98,22 @@ class PublicPortalController extends Controller
             'workingHours',
             'days',
         ));
+    }
+
+    public function requestService(Request $request, Service $service)
+    {
+        $target = route('citizen.services.show', $service, absolute: false);
+        $request->session()->put('url.intended', url($target));
+
+        if (! Auth::check()) {
+            return redirect()->route('citizen.login');
+        }
+
+        if (Auth::user()->role !== 'citizen') {
+            abort(403);
+        }
+
+        return redirect($target);
     }
 
     // -------------------------------------------------------------------------

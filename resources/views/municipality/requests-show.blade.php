@@ -4,201 +4,191 @@
 
 @section('content')
 
-<div class="mb-4">
-    <a href="{{ route('municipality.requests', absolute: false) }}" class="text-decoration-none text-muted small">
-        <i class="bi bi-arrow-left me-1"></i>Back to Requests
+<div class="mb-1">
+    <a href="{{ route('municipality.requests', absolute: false) }}" class="text-decoration-none text-muted" style="font-size:0.85rem;">
+        <i class="bi bi-arrow-left me-1"></i>Back
     </a>
 </div>
 
 @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show">
+    <div class="alert alert-success alert-dismissible fade show" style="padding:0.5rem; margin-bottom:0.5rem; font-size:0.85rem;">
         <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
 
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" style="padding:0.5rem; margin-bottom:0.5rem; font-size:0.85rem;">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 @if($errors->any())
-    <div class="alert alert-danger alert-dismissible fade show">
+    <div class="alert alert-danger alert-dismissible fade show" style="padding:0.5rem; margin-bottom:0.5rem; font-size:0.85rem;">
         @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
 
-<div class="row g-4">
+<style>
+    .compact-cell { display: inline-block; padding: 0.3rem 0.5rem; border-right: 1px solid #eee; }
+    .compact-cell:last-child { border-right: 0; }
+    .info-row { display: flex; flex-wrap: wrap; font-size: 0.8rem; padding: 0.3rem 0; border-bottom: 1px solid #f0f0f0; }
+    .info-label { font-weight: 600; color: #666; text-transform: uppercase; font-size: 0.65rem; width: 80px; }
+    .info-val { flex: 1; }
+</style>
 
-    {{-- Left: Request info + status update --}}
-    <div class="col-lg-7">
+{{-- REQUEST INFO --}}
+<div class="card border-0 shadow-sm" style="margin-bottom:0.5rem;">
+    <div class="card-header bg-light py-1" style="padding: 0.3rem 0.5rem;">
+        <small class="fw-bold">Request #{{ $serviceRequest->id }} | 
+        @php
+            $badgeColor = match($serviceRequest->status) {
+                'Pending'           => 'warning text-dark',
+                'In Review'         => 'info text-dark',
+                'Missing Documents' => 'secondary',
+                'Approved'          => 'success',
+                'Rejected'          => 'danger',
+                'Completed'         => 'primary',
+                default             => 'secondary',
+            };
+        @endphp
+        <span class="badge bg-{{ $badgeColor }}" style="font-size:0.7rem;">{{ $serviceRequest->status }}</span>
+        </small>
+    </div>
+    <div class="card-body" style="padding: 0.4rem;">
+        <div class="info-row"><span class="info-label">Citizen:</span><span class="info-val"><strong>{{ $serviceRequest->citizen->name }}</strong> ({{ $serviceRequest->citizen->email }})</span></div>
+        <div class="info-row"><span class="info-label">Service:</span><span class="info-val"><strong>{{ $serviceRequest->service->name }}</strong> - {{ $serviceRequest->service->category->name }}</span></div>
+        <div class="info-row"><span class="info-label">Office:</span><span class="info-val">{{ $serviceRequest->service->office->name }}</span></div>
+        <div class="info-row"><span class="info-label">Submitted:</span><span class="info-val">{{ $serviceRequest->created_at->format('d M Y H:i') }}</span></div>
+        @if($serviceRequest->isAccepted())
+            <div class="info-row"><span class="info-label">Taken By:</span><span class="info-val">{{ $serviceRequest->acceptedBy?->name ?? 'Staff' }} - {{ $serviceRequest->accepted_at->format('d M Y H:i') }}</span></div>
+        @endif
+        <div class="info-row" style="border-bottom:0;"><span class="info-label">QR:</span><span class="info-val"><div id="qrcode" style="display: inline-block; padding: 1px; border: 1px solid #ddd; line-height:0;"></div></span></div>
+    </div>
+</div>
 
-        {{-- Request summary --}}
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="mb-0 fw-semibold"><i class="bi bi-file-earmark-text me-2"></i>Request #{{ $serviceRequest->id }}</h6>
+{{-- ACTIONS --}}
+@if($serviceRequest->status === 'Pending')
+    <div class="card border-0 shadow-sm border-start border-success border-4" style="margin-bottom:0.5rem;">
+        <div class="card-body" style="padding:0.4rem;">
+            <form method="POST" action="{{ route('municipality.requests.accept', $serviceRequest, absolute: false) }}" style="display: inline;">
+                @csrf
+                <button type="submit" class="btn btn-success btn-sm" style="padding:0.2rem 0.5rem; font-size:0.75rem;">
+                    <i class="bi bi-check-circle me-1"></i>Mark as Taken
+                </button>
+            </form>
+        </div>
+    </div>
+@elseif($serviceRequest->status !== 'Completed')
+    <div class="card border-0 shadow-sm" style="margin-bottom:0.5rem;">
+        <div class="card-header bg-light py-1" style="padding: 0.3rem 0.5rem;">
+            <small class="fw-bold">Update Status</small>
+        </div>
+        <div class="card-body" style="padding:0.4rem;">
+            <form method="POST" action="{{ route('municipality.requests.update-status', $serviceRequest, absolute: false) }}">
+                @csrf @method('PATCH')
+                <div style="margin-bottom:0.3rem;">
+                    <select id="request_status" name="status" class="form-select form-select-sm" style="font-size:0.75rem;" required>
+                        @foreach(['In Review', 'Missing Documents', 'Approved', 'Rejected', 'Completed'] as $status)
+                            <option value="{{ $status }}" {{ $serviceRequest->status === $status ? 'selected' : '' }}>{{ $status }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="margin-bottom:0.3rem;">
+                    <textarea name="office_notes" rows="1" class="form-control form-control-sm" style="font-size:0.75rem;" placeholder="Notes...">{{ old('office_notes', $serviceRequest->office_notes) }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" style="padding:0.2rem 0.5rem; font-size:0.75rem;">
+                    <i class="bi bi-check me-1"></i>Update
+                </button>
+            </form>
+        </div>
+    </div>
+@endif
+
+{{-- DOCUMENTS --}}
+<div class="row g-1">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light py-1" style="padding: 0.3rem 0.5rem;">
+                <small class="fw-bold"><i class="bi bi-upload me-1"></i>Citizen Documents</small>
             </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
-                    <div class="col-sm-6">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.7rem;">Citizen</div>
-                        <div class="fw-semibold">{{ $serviceRequest->citizen->name }}</div>
-                        <div class="text-muted small">{{ $serviceRequest->citizen->email }}</div>
+            <div class="card-body" style="padding:0.4rem; max-height:150px; overflow-y:auto; font-size:0.75rem;">
+                @php $citizenDocs = $serviceRequest->requestDocuments->where('type', 'citizen_upload'); @endphp
+                @forelse($citizenDocs as $doc)
+                    <div class="d-flex align-items-center gap-1 py-1 border-bottom">
+                        <i class="bi bi-file-pdf text-danger"></i>
+                        <span class="flex-grow-1 text-truncate">{{ basename($doc->file_path) }}</span>
+                        <a href="{{ route('municipality.requests.download-document', [$serviceRequest, $doc], absolute: false) }}" class="btn btn-link btn-sm" style="padding:0;"><i class="bi bi-download"></i></a>
                     </div>
-                    <div class="col-sm-6">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.7rem;">Service</div>
-                        <div class="fw-semibold">{{ $serviceRequest->service->name }}</div>
-                        <div class="text-muted small">{{ $serviceRequest->service->category->name }}</div>
+                @empty
+                    <small class="text-muted">None</small>
+                @endforelse
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light py-1" style="padding: 0.3rem 0.5rem;">
+                <small class="fw-bold"><i class="bi bi-file-check me-1"></i>Response Documents</small>
+            </div>
+            <div class="card-body" style="padding:0.4rem; font-size:0.75rem;">
+                <form method="POST" action="{{ route('municipality.requests.upload-document', $serviceRequest, absolute: false) }}" enctype="multipart/form-data" class="mb-1">
+                    @csrf
+                    <div class="input-group input-group-sm">
+                        <input type="file" name="response_document" class="form-control form-control-sm @error('response_document') is-invalid @enderror" accept="application/pdf" style="font-size:0.75rem;">
+                        <button type="submit" class="btn btn-primary btn-sm" style="padding:0.2rem 0.5rem;"><i class="bi bi-upload"></i></button>
                     </div>
-                    <div class="col-sm-6">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.7rem;">Office</div>
-                        <div>{{ $serviceRequest->service->office->name }}</div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.7rem;">Submitted</div>
-                        <div>{{ $serviceRequest->created_at->format('d M Y, H:i') }}</div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.7rem;">Current Status</div>
-                        @php
-                            $badgeColor = match($serviceRequest->status) {
-                                'Pending'           => 'warning text-dark',
-                                'In Review'         => 'info text-dark',
-                                'Missing Documents' => 'secondary',
-                                'Approved'          => 'success',
-                                'Rejected'          => 'danger',
-                                'Completed'         => 'primary',
-                                default             => 'secondary',
-                            };
-                        @endphp
-                        <span class="badge bg-{{ $badgeColor }} fs-6">{{ $serviceRequest->status }}</span>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="text-muted small fw-semibold text-uppercase" style="font-size:0.7rem;">QR Token</div>
-                        <code class="small">{{ $serviceRequest->qr_code_token }}</code>
-                    </div>
+                </form>
+                @php $officialDocs = $serviceRequest->requestDocuments->where('type', 'official_response'); @endphp
+                <div style="max-height:100px; overflow-y:auto;">
+                    @forelse($officialDocs as $doc)
+                        <div class="d-flex align-items-center gap-1 py-1 border-bottom">
+                            <i class="bi bi-file-pdf text-danger"></i>
+                            <span class="flex-grow-1 text-truncate">{{ basename($doc->file_path) }}</span>
+                            <a href="{{ route('municipality.requests.download-document', [$serviceRequest, $doc], absolute: false) }}" class="btn btn-link btn-sm" style="padding:0;"><i class="bi bi-download"></i></a>
+                            <form method="POST" action="{{ route('municipality.requests.delete-document', [$serviceRequest, $doc], absolute: false) }}" onsubmit="return confirm('Delete?')" style="display:inline;">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-link btn-sm text-danger" style="padding:0;"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    @empty
+                        <small class="text-muted">None</small>
+                    @endforelse
                 </div>
             </div>
         </div>
-
-        {{-- Update status form --}}
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="mb-0 fw-semibold"><i class="bi bi-arrow-repeat me-2"></i>Update Status</h6>
-            </div>
-            <div class="card-body p-4">
-                <form method="POST" action="{{ route('municipality.requests.update-status', $serviceRequest, absolute: false) }}">
-                    @csrf @method('PATCH')
-                    <div class="mb-3">
-                        <label for="request_status" class="form-label fw-semibold">New Status <span class="text-danger">*</span></label>
-                        <select id="request_status" name="status" class="form-select" required>
-                            @foreach(['Pending', 'In Review', 'Missing Documents', 'Approved', 'Rejected', 'Completed'] as $status)
-                                <option value="{{ $status }}"
-                                    {{ $serviceRequest->status === $status ? 'selected' : '' }}>
-                                    {{ $status }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="office_notes" class="form-label fw-semibold">Office Notes</label>
-                        <textarea id="office_notes" name="office_notes" rows="3"
-                                  class="form-control"
-                                  placeholder="Add notes visible to the citizen (optional)">{{ old('office_notes', $serviceRequest->office_notes) }}</textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-2"></i>Update Status
-                    </button>
-                </form>
-            </div>
-        </div>
-
-    </div>
-
-    {{-- Right: Documents --}}
-    <div class="col-lg-5">
-
-        {{-- Citizen uploaded documents --}}
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="mb-0 fw-semibold"><i class="bi bi-upload me-2"></i>Citizen Documents</h6>
-            </div>
-            <div class="card-body p-3">
-                @php
-                    $citizenDocs = $serviceRequest->requestDocuments->where('type', 'citizen_upload');
-                @endphp
-                @if($citizenDocs->isEmpty())
-                    <p class="text-muted small mb-0">No documents uploaded by citizen.</p>
-                @else
-                    @foreach($citizenDocs as $doc)
-                        <div class="d-flex align-items-center gap-2 py-2 border-bottom">
-                            <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
-                            <span class="small flex-grow-1">{{ basename($doc->file_path) }}</span>
-                            <a href="{{ Storage::url($doc->file_path) }}" target="_blank"
-                               class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download"></i>
-                            </a>
-                        </div>
-                    @endforeach
-                @endif
-            </div>
-        </div>
-
-        {{-- Official response documents --}}
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="mb-0 fw-semibold"><i class="bi bi-file-earmark-check me-2"></i>Official Response Documents</h6>
-            </div>
-            <div class="card-body p-3">
-
-                {{-- Upload form --}}
-                <form method="POST"
-                      action="{{ route('municipality.requests.upload-document', $serviceRequest, absolute: false) }}"
-                      enctype="multipart/form-data"
-                      class="mb-3">
-                    @csrf
-                    <label class="form-label fw-semibold small">Upload PDF Response</label>
-                    <div class="input-group input-group-sm">
-                        <input type="file"
-                               name="response_document"
-                               class="form-control @error('response_document') is-invalid @enderror"
-                               accept="application/pdf">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-upload me-1"></i>Upload
-                        </button>
-                        @error('response_document')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="text-muted mt-1" style="font-size:0.75rem;">PDF only · Max 10 MB</div>
-                </form>
-
-                {{-- Existing official response docs --}}
-                @php
-                    $officialDocs = $serviceRequest->requestDocuments->where('type', 'official_response');
-                @endphp
-                @if($officialDocs->isEmpty())
-                    <p class="text-muted small mb-0">No official response documents uploaded yet.</p>
-                @else
-                    @foreach($officialDocs as $doc)
-                        <div class="d-flex align-items-center gap-2 py-2 border-bottom">
-                            <i class="bi bi-file-earmark-pdf text-danger fs-5"></i>
-                            <span class="small flex-grow-1 text-truncate">{{ basename($doc->file_path) }}</span>
-                            <a href="{{ Storage::url($doc->file_path) }}" target="_blank"
-                               class="btn btn-outline-secondary btn-sm">
-                                <i class="bi bi-download"></i>
-                            </a>
-                            <form method="POST"
-                                  action="{{ route('municipality.requests.delete-document', [$serviceRequest, $doc], absolute: false) }}"
-                                  onsubmit="return confirm('Delete this document?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    @endforeach
-                @endif
-            </div>
-        </div>
-
     </div>
 </div>
+
+@section('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const qrToken = "{{ $serviceRequest->qr_code_token }}";
+        const scanUrl = "{{ route('qr.scan', ['token' => '__TOKEN__'], absolute: true) }}".replace('__TOKEN__', qrToken);
+        if (document.getElementById('qrcode')) {
+            new QRCode(document.getElementById('qrcode'), {
+                text: scanUrl,
+                width: 60,
+                height: 60,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    });
+
+    @if(auth()->check())
+        if (typeof window.Echo !== 'undefined') {
+            window.Echo.private('service-request.{{ $serviceRequest->id }}')
+                .listen('service-request-status-changed', (event) => {
+                    location.reload();
+                });
+        }
+    @endif
+</script>
+@endsection
 
 @endsection
