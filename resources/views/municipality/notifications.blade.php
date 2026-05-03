@@ -12,12 +12,13 @@
 {{-- Store CSRF token and route URLs in meta tags so JS can always read them --}}
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="route-notifications-destroy-all" content="{{ route('municipality.notifications.destroyAll') }}">
+<meta name="notifications-destroy-base" content="{{ route('municipality.notifications', absolute: false) }}">
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-start">
         <div>
             <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Notifications</h6>
-            <p class="mb-0 mt-1 small text-muted">Click a message to open that conversation in Chat.</p>
+            <p class="mb-0 mt-1 small text-muted">Click a notification to open the chat or service request.</p>
         </div>
         @if($notifications->total() > 0)
             <button type="button" id="clear-all-btn" class="btn btn-sm btn-outline-danger" onclick="handleClearAll()">
@@ -50,11 +51,27 @@
                                 <span class="text-muted small text-nowrap">{{ $notification->created_at->diffForHumans() }}</span>
                             </div>
                         </a>
+                    @elseif(data_get($notification->data, 'service_request_id'))
+                        <a href="{{ route('municipality.requests.show', data_get($notification->data, 'service_request_id')) }}"
+                           class="text-decoration-none text-dark">
+                            <div class="d-flex justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-semibold">
+                                        {{ $notification->data['sender_name'] ?? $notification->data['service_name'] ?? __('Service request') }}
+                                        @if(!empty($notification->data['office_name']))
+                                            <span class="text-muted fw-normal">· {{ $notification->data['office_name'] }}</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-muted small mt-1">{{ $notification->data['preview'] ?? '' }}</div>
+                                </div>
+                                <span class="text-muted small text-nowrap">{{ $notification->created_at->diffForHumans() }}</span>
+                            </div>
+                        </a>
                     @else
                         <div class="d-flex justify-content-between gap-2">
                             <div>
                                 <div class="fw-semibold text-dark">
-                                    {{ $notification->data['sender_name'] ?? 'Message' }}
+                                    {{ $notification->data['sender_name'] ?? $notification->data['service_name'] ?? __('Notification') }}
                                     @if(!empty($notification->data['office_name']))
                                         <span class="text-muted fw-normal">· {{ $notification->data['office_name'] }}</span>
                                     @endif

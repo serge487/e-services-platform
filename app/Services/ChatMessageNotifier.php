@@ -1,7 +1,7 @@
 <?php
+
 namespace App\Services;
-use App\Events\UnreadNotificationsCountChanged;
-use App\Events\UserNotificationCreated;
+
 use App\Models\Chat;
 use App\Models\ChatMessage;
 use App\Models\User;
@@ -40,23 +40,7 @@ class ChatMessageNotifier
                 continue;
             }
             $recipient->notify(new NewChatMessageNotification($message));
-            $dbNotification = $recipient->notifications()->latest('created_at')->first();
-            if ($dbNotification) {
-                $openPath = $recipient->role === 'citizen'
-                    ? route('citizen.notifications.chat', ['id' => $dbNotification->id], absolute: false)
-                    : route('municipality.notifications.chat', ['id' => $dbNotification->id], absolute: false);
-                broadcast(new UserNotificationCreated(
-                    $recipient->id,
-                    $dbNotification->id,
-                    $dbNotification->data,
-                    $dbNotification->created_at->toIso8601String(),
-                    $openPath,
-                ));
-            }
-            broadcast(new UnreadNotificationsCountChanged(
-                $recipient->id,
-                $recipient->unreadNotifications()->count()
-            ));
+            NotificationRealtimeBroadcaster::broadcastLatest($recipient);
         }
     }
 }

@@ -252,12 +252,13 @@
                     @endif
                 </a>
 
-               <a href="{{ route('citizen.notifications', absolute: false) }}" class="topbar-stat">
-                        <i class="bi bi-bell"></i>
-                        <span class="count {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? 'has-items' : '' }}" data-unread-notifications>
-                            {{ $citizenStats['unread_notifications'] ?? 0 }}
-                        </span>
-                    </a>
+                <a href="{{ route('citizen.notifications', absolute: false) }}"
+                   class="{{ request()->routeIs('citizen.notifications') ? 'active' : '' }}">
+                    <i class="bi bi-bell"></i> Notifications
+                    <span class="nav-badge {{ ($citizenStats['unread_notifications'] ?? 0) > 0 ? '' : 'd-none' }}" data-unread-notifications>
+                        {{ $citizenStats['unread_notifications'] ?? 0 }}
+                    </span>
+                </a>
 
                 <div class="nav-label">More</div>
 

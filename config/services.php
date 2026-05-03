@@ -29,4 +29,7 @@ return[
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
         'redirect' => env('FACEBOOK_REDIRECT_URI', '/auth/facebook/callback'),
     ],
+
+    'ocr_space_api_key' => env('OCR_SPACE_API_KEY'),
+    'ocr_space_language' => env('OCR_SPACE_LANGUAGE', 'auto'),
 ];
