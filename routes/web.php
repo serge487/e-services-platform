@@ -23,6 +23,8 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\CitizenChatController;
 use App\Http\Controllers\Citizen\AppointmentController as CitizenAppointmentController;
+use App\Http\Controllers\Citizen\ServiceController as CitizenServiceController;
+use App\Http\Controllers\Citizen\ServiceRequestController as CitizenServiceRequestController;
 use App\Http\Controllers\CitizenNotificationController;
 use App\Http\Controllers\Municipality\AppointmentController as MunicipalityAppointmentController;
 use App\Http\Controllers\Municipality\CategoryController;
@@ -36,6 +38,7 @@ use App\Http\Controllers\Municipality\ServiceRequestController;
 use App\Http\Controllers\Municipality\TwoFactorSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortalController;
+use App\Http\Controllers\QrCodeScanController;
 use Illuminate\Support\Facades\Route;
 
 // --------------------------------------------------------------------------
@@ -43,6 +46,7 @@ use Illuminate\Support\Facades\Route;
 // --------------------------------------------------------------------------
 Route::get('/', [PublicPortalController::class, 'index'])->name('portal');
 Route::get('/offices/{office}', [PublicPortalController::class, 'show'])->name('portal.office');
+Route::get('/services/{service}/request', [PublicPortalController::class, 'requestService'])->name('portal.services.request');
 
 // --------------------------------------------------------------------------
 // Legacy redirects — keep old paths working
@@ -118,7 +122,9 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
             return redirect()->route('portal');
         })->name('dashboard');
 
-        Route::get('/services', fn () => view('citizen.services'))->name('services');
+        // ── Services: Browse & Request ────────────────────────────────────
+        Route::get('/services', [CitizenServiceController::class, 'index'])->name('services');
+        Route::get('/services/{service}', [CitizenServiceController::class, 'show'])->name('services.show');
 
         // Backward-compatible alias — older links using singular route name still work
         Route::get('/service', fn () => redirect()->route('citizen.services'))->name('service');
@@ -129,7 +135,14 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
             ->middleware('prevent.cache')
             ->name('chat.poll');
         Route::post('/chat/{chatId}/send', [CitizenChatController::class, 'sendMessage'])->name('chat.send');
-        Route::get('/requests', fn () => view('citizen.requests'))->name('requests');
+
+        // ── Service Requests: Submit, Track & Download ────────────────────
+        Route::get('/requests', [CitizenServiceRequestController::class, 'index'])->name('requests');
+        Route::post('/service-requests', [CitizenServiceRequestController::class, 'store'])->name('service-requests.store');
+        Route::get('/service-requests/{serviceRequest}', [CitizenServiceRequestController::class, 'show'])->name('service-requests.show');
+        Route::get('/service-requests/{serviceRequest}/poll', [CitizenServiceRequestController::class, 'pollStatus'])->name('service-requests.poll');
+        Route::get('/service-requests/{serviceRequest}/documents/{document}/download', [CitizenServiceRequestController::class, 'downloadDocument'])->name('service-requests.download');
+
         Route::get('/appointments', [CitizenAppointmentController::class, 'index'])->name('appointments');
         Route::get('/appointments/live', [CitizenAppointmentController::class, 'live'])->name('appointments.live');
         Route::post('/appointments', [CitizenAppointmentController::class, 'store'])->name('appointments.store');
@@ -183,8 +196,12 @@ Route::prefix('municipality')
             ->name('requests.show');
         Route::patch('/requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])
             ->name('requests.update-status');
+        Route::post('/requests/{serviceRequest}/accept', [ServiceRequestController::class, 'acceptRequest'])
+            ->name('requests.accept');
         Route::post('/requests/{serviceRequest}/documents', [ServiceRequestController::class, 'uploadDocument'])
             ->name('requests.upload-document');
+        Route::get('/requests/{serviceRequest}/documents/{document}/download', [ServiceRequestController::class, 'downloadDocument'])
+            ->name('requests.download-document');
         Route::delete('/requests/{serviceRequest}/documents/{document}', [ServiceRequestController::class, 'deleteDocument'])
             ->name('requests.delete-document');
 
@@ -242,6 +259,14 @@ Route::prefix('municipality')
                 ->name('services.destroy');
         });
     });
+
+// --------------------------------------------------------------------------
+// QR Code scanning — public endpoint for tracking via QR code
+// --------------------------------------------------------------------------
+Route::get('/qr/scan/{token}', [QrCodeScanController::class, 'scan'])
+    ->name('qr.scan');
+Route::get('/qr/data/{token}', [QrCodeScanController::class, 'data'])
+    ->name('qr.data');
 
 // --------------------------------------------------------------------------
 // Citizen guest routes (register, login, password reset) + logout

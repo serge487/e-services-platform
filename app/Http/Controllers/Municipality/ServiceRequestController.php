@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Municipality;
 
+use App\Events\ServiceRequestStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Models\RequestDocument;
 use App\Models\ServiceRequest;
+use App\Notifications\ServiceRequestStatusUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +38,7 @@ class ServiceRequestController extends Controller
             'service.office',
             'service.category',
             'requestDocuments',
+            'acceptedBy',
         ])
             ->whereHas('service', fn ($query) => $query->whereIn('office_id', $officeIds))
             ->when($statusFilter, fn ($query) => $query->where('status', $statusFilter))
@@ -57,6 +60,7 @@ class ServiceRequestController extends Controller
             'service.office',
             'service.category',
             'requestDocuments',
+            'acceptedBy',
             'payment',
             'messages.sender',
         ]);
@@ -71,17 +75,82 @@ class ServiceRequestController extends Controller
     {
         $this->authorizeRequestAccess($serviceRequest);
 
+        $previousStatus = $serviceRequest->status;
+
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
             'office_notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        if ($previousStatus === 'Pending' && $validated['status'] !== 'Pending') {
+            return back()->withErrors([
+                'status' => 'Pending requests must be marked as taken before changing their workflow status.',
+            ]);
+        }
 
         $serviceRequest->update([
             'status' => $validated['status'],
             'office_notes' => $validated['office_notes'] ?? $serviceRequest->office_notes,
         ]);
 
+        // Broadcast the status change event
+        ServiceRequestStatusChanged::dispatch(
+            $serviceRequest,
+            $previousStatus,
+            $validated['status'],
+            $validated['office_notes'] ?? null
+        );
+
+        // Send notification to citizen
+        $serviceRequest->citizen->notify(
+            new ServiceRequestStatusUpdated(
+                $serviceRequest,
+                $validated['status'],
+                $validated['office_notes'] ?? null
+            )
+        );
+
         return back()->with('success', 'Request status updated to "'.$validated['status'].'".');
+    }
+
+    /**
+     * Accept a service request (sets status to "In Review").
+     * Explicit action for staff to mark a pending request as taken.
+     */
+    public function acceptRequest(ServiceRequest $serviceRequest)
+    {
+        $this->authorizeRequestAccess($serviceRequest);
+
+        if ($serviceRequest->status !== 'Pending') {
+            return back()->with('error', 'Only pending requests can be accepted.');
+        }
+
+        $previousStatus = $serviceRequest->status;
+
+        $serviceRequest->update([
+            'status' => 'In Review',
+            'accepted_by' => Auth::id(),
+            'accepted_at' => now(),
+        ]);
+
+        // Broadcast the acceptance event
+        ServiceRequestStatusChanged::dispatch(
+            $serviceRequest,
+            $previousStatus,
+            'In Review',
+            'Request marked as taken by office staff.'
+        );
+
+        // Notify citizen that request was accepted
+        $serviceRequest->citizen->notify(
+            new ServiceRequestStatusUpdated(
+                $serviceRequest,
+                'In Review',
+                'Your request is now under review by the office.'
+            )
+        );
+
+        return back()->with('success', 'Request marked as taken and moved to "In Review".');
     }
 
     /**
@@ -137,6 +206,17 @@ class ServiceRequestController extends Controller
         $document->delete();
 
         return back()->with('success', 'Document deleted successfully.');
+    }
+
+    public function downloadDocument(ServiceRequest $serviceRequest, RequestDocument $document)
+    {
+        $this->authorizeRequestAccess($serviceRequest);
+
+        if ($document->service_request_id !== $serviceRequest->id) {
+            abort(404, 'Document not found.');
+        }
+
+        return Storage::disk('private')->download($document->file_path);
     }
 
     // -------------------------------------------------------------------------

@@ -11,8 +11,15 @@ class ServiceRequest extends Model
 {
     protected $fillable = [
         'citizen_id', 'service_id', 'status',
-        'qr_code_token', 'office_notes'
+        'qr_code_token', 'office_notes', 'accepted_by', 'accepted_at'
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'accepted_at' => 'datetime',
+        ];
+    }
 
     public function citizen(): BelongsTo
     {
@@ -22,6 +29,24 @@ class ServiceRequest extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function acceptedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accepted_by');
+    }
+
+    public function isAccepted(): bool
+    {
+        return $this->accepted_at !== null;
+    }
+
+    public function citizenDisplayStatus(): string
+    {
+        return match ($this->status) {
+            'Pending', 'In Review' => 'Under Review',
+            default => $this->status,
+        };
     }
 
     public function requestDocuments(): HasMany

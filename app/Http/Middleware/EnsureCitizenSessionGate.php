@@ -34,6 +34,8 @@ class EnsureCitizenSessionGate
                 return response()->json(['message' => 'Identity not verified.'], 403);
             }
 
+            $request->session()->put('url.intended', $request->fullUrl());
+
             return redirect()->route('citizen.identity-verification.show');
         }
 
@@ -41,6 +43,8 @@ class EnsureCitizenSessionGate
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Session not unlocked.'], 401);
             }
+
+            $request->session()->put('url.intended', $request->fullUrl());
 
             if ($user->two_factor_confirmed_at) {
                 return redirect()->route('citizen.2fa.verify');

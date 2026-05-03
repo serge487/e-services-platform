@@ -311,7 +311,8 @@
 </div>
 
 {{-- ── Main content ── --}}
-<div id="main-content">
+{{-- <div id="main-content"> --}}
+    <div id="main-content" style="margin-left:260px; width:calc(100% - 260px);">
 
     {{-- Topbar --}}
     <div id="topbar">

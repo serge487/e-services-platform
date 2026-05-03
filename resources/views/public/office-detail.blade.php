@@ -325,13 +325,13 @@
                                     </span>
                                     @auth
                                         @if(Auth::user()->role === 'citizen')
-                                            <a href="{{ route('citizen.services', absolute: false) }}"
+                                            <a href="{{ route('portal.services.request', $service, absolute: false) }}"
                                                class="btn-request">
                                                 <i class="bi bi-send me-1"></i>Request
                                             </a>
                                         @endif
                                     @else
-                                        <a href="{{ route('citizen.login', absolute: false) }}?redirect={{ urlencode(url()->current()) }}"
+                                        <a href="{{ route('portal.services.request', $service, absolute: false) }}"
                                            class="btn-login-request">
                                             <i class="bi bi-lock me-1"></i>Login to Request
                                         </a>

@@ -16,8 +16,9 @@ class DashboardController extends Controller
 
         $stats = $this->buildStats($officeIds);
         $todayAppointments = $this->todayAppointments($officeIds);
+        $pendingRequests = $this->pendingRequests($officeIds);
 
-        return view('municipality.dashboard', compact('stats', 'todayAppointments'));
+        return view('municipality.dashboard', compact('stats', 'todayAppointments', 'pendingRequests'));
     }
 
     public function live()
@@ -72,6 +73,17 @@ class DashboardController extends Controller
             })
             ->latest()
             ->limit(10)
+            ->get();
+    }
+
+    private function pendingRequests(array $officeIds)
+    {
+        return ServiceRequest::query()
+            ->with(['citizen', 'service.office', 'service.category', 'requestDocuments'])
+            ->whereHas('service', fn ($q) => $q->whereIn('office_id', $officeIds))
+            ->whereIn('status', ['Pending', 'In Review', 'Missing Documents'])
+            ->latest()
+            ->limit(8)
             ->get();
     }
 }
