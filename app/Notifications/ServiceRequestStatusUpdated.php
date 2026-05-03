@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Str;
 
 class ServiceRequestStatusUpdated extends Notification
 {
@@ -52,11 +53,19 @@ class ServiceRequestStatusUpdated extends Notification
 
     public function toArray(object $notifiable): array
     {
+        $serviceName = $this->serviceRequest->service->name ?? '';
+        $preview = 'Status: '.$this->newStatus;
+        if ($this->notes) {
+            $preview .= ' — '.Str::limit((string) $this->notes, 100);
+        }
+
         return [
             'service_request_id' => $this->serviceRequest->id,
-            'service_name' => $this->serviceRequest->service->name,
+            'service_name' => $serviceName,
             'status' => $this->newStatus,
             'notes' => $this->notes,
+            'sender_name' => $serviceName !== '' ? $serviceName : 'Service request',
+            'preview' => $preview,
         ];
     }
 }

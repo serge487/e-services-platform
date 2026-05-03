@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RequestDocument;
 use App\Models\ServiceRequest;
 use App\Notifications\ServiceRequestStatusUpdated;
+use App\Services\NotificationRealtimeBroadcaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -109,6 +110,7 @@ class ServiceRequestController extends Controller
                 $validated['office_notes'] ?? null
             )
         );
+        NotificationRealtimeBroadcaster::broadcastLatest($serviceRequest->citizen);
 
         return back()->with('success', 'Request status updated to "'.$validated['status'].'".');
     }
@@ -149,6 +151,7 @@ class ServiceRequestController extends Controller
                 'Your request is now under review by the office.'
             )
         );
+        NotificationRealtimeBroadcaster::broadcastLatest($serviceRequest->citizen);
 
         return back()->with('success', 'Request marked as taken and moved to "In Review".');
     }

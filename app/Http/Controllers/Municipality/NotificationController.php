@@ -33,39 +33,39 @@ class NotificationController extends Controller
         return redirect()->route('municipality.chat.show', $chatId);
     }
 
-  public function destroy(string $id)
-{
-    $user = Auth::user();
-    abort_unless($user->role === 'citizen', 403); // or canAccessMunicipalityPortal()
-    
-    $notification = $user->notifications()->where('id', $id)->firstOrFail();
-    $notification->delete();
+    public function destroy(string $id)
+    {
+        $user = Auth::user();
+        abort_unless($user->canAccessMunicipalityPortal(), 403);
 
-    try {
-        broadcast(new UnreadNotificationsCountChanged(
-            $user->id,
-            $user->unreadNotifications()->count()
-        ));
-    } catch (\Exception $e) {
-        // WebSocket server not running in dev — non-fatal
+        $notification = $user->notifications()->where('id', $id)->firstOrFail();
+        $notification->delete();
+
+        try {
+            broadcast(new UnreadNotificationsCountChanged(
+                $user->id,
+                $user->unreadNotifications()->count()
+            ));
+        } catch (\Exception $e) {
+            // WebSocket server not running in dev — non-fatal
+        }
+
+        return response()->json(['success' => true]);
     }
 
-    return response()->json(['success' => true]);
-}
+    public function destroyAll()
+    {
+        $user = Auth::user();
+        abort_unless($user->canAccessMunicipalityPortal(), 403);
 
-public function destroyAll()
-{
-    $user = Auth::user();
-    abort_unless($user->role === 'citizen', 403); // or canAccessMunicipalityPortal()
+        $user->notifications()->delete();
 
-    $user->notifications()->delete();
+        try {
+            broadcast(new UnreadNotificationsCountChanged($user->id, 0));
+        } catch (\Exception $e) {
+            // WebSocket server not running in dev — non-fatal
+        }
 
-    try {
-        broadcast(new UnreadNotificationsCountChanged($user->id, 0));
-    } catch (\Exception $e) {
-        // WebSocket server not running in dev — non-fatal
+        return response()->json(['success' => true]);
     }
-
-    return response()->json(['success' => true]);
-}
 }
