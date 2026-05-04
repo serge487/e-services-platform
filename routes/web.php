@@ -150,7 +150,9 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
             ->name('appointments.cancel');
         Route::get('/notifications', [CitizenNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [CitizenNotificationController::class, 'openChat'])->name('notifications.chat');
+        Route::get('/notifications/{id}/service-request', [CitizenNotificationController::class, 'openServiceRequest'])->name('notifications.service-request');
         Route::delete('/notifications/{id}', [CitizenNotificationController::class, 'destroy'])->name('notifications.destroy');
+
         Route::delete('/notifications', [CitizenNotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
         Route::get('/history', fn () => view('citizen.history'))->name('history');
         Route::get('/profile', fn () => view('citizen.profile'))->name('profile');

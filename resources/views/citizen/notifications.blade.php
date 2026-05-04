@@ -52,7 +52,7 @@
                             </div>
                         </a>
                     @elseif(data_get($notification->data, 'service_request_id'))
-                        <a href="{{ route('citizen.service-requests.show', data_get($notification->data, 'service_request_id')) }}"
+                      <a href="{{ route('citizen.notifications.service-request', $notification->id) }}"
                            class="text-decoration-none text-dark">
                             <div class="d-flex justify-content-between gap-2">
                                 <div>
