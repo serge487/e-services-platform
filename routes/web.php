@@ -32,6 +32,7 @@ use App\Http\Controllers\Municipality\ChatController;
 use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\MunicipalitySessionController;
 use App\Http\Controllers\Municipality\NotificationController as MunicipalityNotificationController;
+use App\Http\Controllers\Municipality\EventAlertController;
 use App\Http\Controllers\Municipality\OfficeProfileController;
 use App\Http\Controllers\Municipality\ServiceController;
 use App\Http\Controllers\Municipality\ServiceRequestController;
@@ -179,6 +180,16 @@ Route::prefix('municipality')
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/live', [DashboardController::class, 'live'])->name('dashboard.live');
 
+        // ── Event Alerts ──────────────────────────────────────────────────────────────
+Route::get('/event-alerts', [\App\Http\Controllers\Municipality\EventAlertController::class, 'index'])
+    ->name('event-alerts.index');
+Route::get('/event-alerts/create', [\App\Http\Controllers\Municipality\EventAlertController::class, 'create'])
+    ->name('event-alerts.create');
+Route::post('/event-alerts', [\App\Http\Controllers\Municipality\EventAlertController::class, 'store'])
+    ->name('event-alerts.store');
+Route::get('/event-alerts/{eventAlert}', [\App\Http\Controllers\Municipality\EventAlertController::class, 'show'])
+    ->name('event-alerts.show');
+
         // ── 2FA ───────────────────────────────────────────────────────────
         Route::get('/2fa/setup', [TwoFactorSetupController::class, 'show'])->name('2fa.setup');
         Route::post('/2fa/enable', [TwoFactorSetupController::class, 'enable'])->name('2fa.enable');
@@ -260,6 +271,8 @@ Route::prefix('municipality')
             Route::delete('/services/{service}', [ServiceController::class, 'destroy'])
                 ->name('services.destroy');
         });
+
+
     });
 
 // --------------------------------------------------------------------------
