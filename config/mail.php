@@ -96,9 +96,19 @@ return [
             ],
             'retry_after' => 60,
         ],
+        'gmail-oauth' => [
+    'transport' => 'gmail-oauth',
+],
+
 
     ],
 
+    'gmail' => [
+    'client_id'     => env('GMAIL_CLIENT_ID'),
+    'client_secret' => env('GMAIL_CLIENT_SECRET'),
+    'refresh_token' => env('GMAIL_REFRESH_TOKEN'),
+    'from'          => env('GMAIL_FROM_ADDRESS'),
+],
     /*
     |--------------------------------------------------------------------------
     | Global "From" Address

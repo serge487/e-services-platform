@@ -180,7 +180,7 @@
     {{-- Sidebar --}}
     <div id="sidebar">
         <div class="sidebar-brand">
-            <h5>🏛️ Municipality Portal</h5>
+            <h5>Municipality Portal</h5>
             <small>{{ auth()->user()->municipality?->name ?? 'Office Management' }}</small>
         </div>
 
@@ -231,6 +231,11 @@
                class="{{ request()->routeIs('municipality.chat') ? 'active' : '' }}">
                 <i class="bi bi-chat-dots"></i> Chat
             </a>
+
+            <a href="{{ route('municipality.event-alerts.index', absolute: false) }}"
+   class="{{ request()->routeIs('municipality.event-alerts*') ? 'active' : '' }}">
+    <i class="bi bi-megaphone"></i> Event Alerts
+</a>
 
             <div class="nav-label">Security</div>
 
