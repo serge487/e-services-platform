@@ -41,6 +41,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortalController;
 use App\Http\Controllers\QrCodeScanController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Citizen\PaymentController;
 
 // --------------------------------------------------------------------------
 // Public portal — no authentication required
@@ -144,6 +145,12 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::get('/service-requests/{serviceRequest}/poll', [CitizenServiceRequestController::class, 'pollStatus'])->name('service-requests.poll');
         Route::get('/service-requests/{serviceRequest}/documents/{document}/download', [CitizenServiceRequestController::class, 'downloadDocument'])->name('service-requests.download');
 
+         // Payment routes
+Route::get('/service-requests/{serviceRequest}/payment', [PaymentController::class, 'show'])
+    ->name('service-requests.payment');
+Route::post('/service-requests/{serviceRequest}/payment', [PaymentController::class, 'store'])
+    ->name('service-requests.payment.store');
+    
         Route::get('/appointments', [CitizenAppointmentController::class, 'index'])->name('appointments');
         Route::get('/appointments/live', [CitizenAppointmentController::class, 'live'])->name('appointments.live');
         Route::post('/appointments', [CitizenAppointmentController::class, 'store'])->name('appointments.store');
@@ -219,6 +226,9 @@ Route::get('/event-alerts/{eventAlert}', [\App\Http\Controllers\Municipality\Eve
             ->name('requests.download-document');
         Route::delete('/requests/{serviceRequest}/documents/{document}', [ServiceRequestController::class, 'deleteDocument'])
             ->name('requests.delete-document');
+        Route::post('/requests/{serviceRequest}/confirm-payment', 
+    [ServiceRequestController::class, 'confirmPayment'])
+    ->name('requests.confirm-payment');
 
         // ── Appointments, feedback, chat (shells) ─────────────────────────
         Route::get('/appointments', [MunicipalityAppointmentController::class, 'index'])->name('appointments');
@@ -285,6 +295,8 @@ Route::get('/qr/scan/{token}', [QrCodeScanController::class, 'scan'])
 Route::get('/qr/data/{token}', [QrCodeScanController::class, 'data'])
     ->name('qr.data');
 
+
+   
 // --------------------------------------------------------------------------
 // Citizen guest routes (register, login, password reset) + logout
 // Defined in routes/auth.php (Breeze scaffold under /citizen prefix)

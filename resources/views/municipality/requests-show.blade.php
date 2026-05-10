@@ -106,7 +106,98 @@
         </div>
     </div>
 @endif
+{{-- Payment Status (municipality view) --}}
+@if($serviceRequest->payment)
+    @php $payment = $serviceRequest->payment; @endphp
+    <div class="card border-0 shadow-sm" style="margin-bottom:0.5rem;">
+        <div class="card-header bg-light py-1" style="padding: 0.3rem 0.5rem;">
+            <small class="fw-bold">
+                <i class="bi bi-credit-card me-1"></i>Payment
+                @if($payment->isPaid())
+                    <span class="badge bg-success ms-1" style="font-size:0.65rem;">Paid</span>
+                @else
+                    <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Pending</span>
+                @endif
+            </small>
+        </div>
+        <div class="card-body" style="padding:0.4rem; font-size:0.78rem;">
 
+            <div class="info-row">
+                <span class="info-label">Amount:</span>
+                <span class="info-val fw-bold">${{ number_format($payment->amount, 2) }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Method:</span>
+                <span class="info-val">{{ $payment->methodLabel() }}</span>
+            </div>
+
+            @if($payment->payment_method === 'whish' && $payment->whish_phone)
+                <div class="info-row">
+                    <span class="info-label">Phone:</span>
+                    <span class="info-val">{{ $payment->whish_phone }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Ref:</span>
+                    <span class="info-val">
+                        <code>{{ $payment->whish_reference ?? '—' }}</code>
+                    </span>
+                </div>
+            @endif
+
+            @if($payment->payment_method === 'crypto' && $payment->transaction_reference)
+                <div class="info-row">
+                    <span class="info-label">Coin:</span>
+                    <span class="info-val">{{ $payment->crypto_coin }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">TX Hash:</span>
+                    <span class="info-val">
+                        <code style="font-size:0.7rem;word-break:break-all;">
+                            {{ $payment->transaction_reference }}
+                        </code>
+                    </span>
+                </div>
+            @endif
+
+            @if($payment->payment_method === 'cash')
+                <div class="info-row" style="border-bottom:0;">
+                    <span class="info-val text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Citizen will pay cash on pickup.
+                    </span>
+                </div>
+            @endif
+
+            @if($payment->isPaid())
+                <div class="mt-1 text-success" style="font-size:0.75rem;">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Confirmed on {{ $payment->paid_at?->format('M d, Y \a\t g:i A') }}
+                </div>
+            @elseif(in_array($payment->payment_method, ['whish', 'crypto'])
+                    && ($payment->whish_reference || $payment->transaction_reference))
+                {{-- Show confirm button for whish/crypto with submitted details --}}
+                <form method="POST"
+                      action="{{ route('municipality.requests.confirm-payment', $serviceRequest, absolute: false) }}"
+                      class="mt-2">
+                    @csrf
+                    <button type="submit"
+                            class="btn btn-success btn-sm w-100"
+                            style="font-size:0.75rem;"
+                            onclick="return confirm('Confirm payment and auto-approve this request?')">
+                        <i class="bi bi-check-circle me-1"></i>
+                        Confirm Payment & Approve Request
+                    </button>
+                </form>
+            @elseif(! $payment->isPaid())
+                <div class="mt-1 text-warning" style="font-size:0.75rem;">
+                    <i class="bi bi-clock me-1"></i>
+                    Awaiting citizen payment submission.
+                </div>
+            @endif
+
+        </div>
+    </div>
+@endif
 {{-- DOCUMENTS --}}
 <div class="row g-1">
     <div class="col-md-6">
