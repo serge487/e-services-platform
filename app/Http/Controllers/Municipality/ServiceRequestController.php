@@ -6,6 +6,7 @@ use App\Events\ServiceRequestStatusChanged;
 use App\Http\Controllers\Controller;
 use App\Models\RequestDocument;
 use App\Models\ServiceRequest;
+use App\Models\Payment;
 use App\Notifications\ServiceRequestStatusUpdated;
 use App\Services\NotificationRealtimeBroadcaster;
 use Illuminate\Http\Request;
@@ -24,10 +25,6 @@ class ServiceRequestController extends Controller
         'Completed',
     ];
 
-    /**
-     * List all incoming requests for this municipality's offices,
-     * with optional status filter.
-     */
     public function index(Request $request)
     {
         $officeIds = $this->getAccessibleOfficeIds();
@@ -49,9 +46,6 @@ class ServiceRequestController extends Controller
         return view('municipality.requests', compact('serviceRequests', 'statusFilter'));
     }
 
-    /**
-     * Show a single request with all its details, documents and messages.
-     */
     public function show(ServiceRequest $serviceRequest)
     {
         $this->authorizeRequestAccess($serviceRequest);
@@ -69,9 +63,6 @@ class ServiceRequestController extends Controller
         return view('municipality.requests-show', compact('serviceRequest'));
     }
 
-    /**
-     * Update the status of a service request and optionally add office notes.
-     */
     public function updateStatus(Request $request, ServiceRequest $serviceRequest)
     {
         $this->authorizeRequestAccess($serviceRequest);
@@ -79,9 +70,23 @@ class ServiceRequestController extends Controller
         $previousStatus = $serviceRequest->status;
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:'.implode(',', self::STATUSES)],
+            'status' => ['required', 'string', 'in:' . implode(',', self::STATUSES)],
             'office_notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        // LOAD PAYMENT SAFELY
+        $serviceRequest->loadMissing('payment');
+
+        // ❗ FIX: check BEFORE updating
+        if (
+            $validated['status'] === 'Approved'
+            && $serviceRequest->payment
+            && ! $serviceRequest->payment->isPaid()
+        ) {
+            return back()->withErrors([
+                'status' => 'Cannot approve this request — payment has not been completed yet.',
+            ]);
+        }
 
         if ($previousStatus === 'Pending' && $validated['status'] !== 'Pending') {
             return back()->withErrors([
@@ -94,7 +99,6 @@ class ServiceRequestController extends Controller
             'office_notes' => $validated['office_notes'] ?? $serviceRequest->office_notes,
         ]);
 
-        // Broadcast the status change event
         ServiceRequestStatusChanged::dispatch(
             $serviceRequest,
             $previousStatus,
@@ -102,7 +106,6 @@ class ServiceRequestController extends Controller
             $validated['office_notes'] ?? null
         );
 
-        // Send notification to citizen
         $serviceRequest->citizen->notify(
             new ServiceRequestStatusUpdated(
                 $serviceRequest,
@@ -110,18 +113,17 @@ class ServiceRequestController extends Controller
                 $validated['office_notes'] ?? null
             )
         );
+
         NotificationRealtimeBroadcaster::broadcastLatest($serviceRequest->citizen);
 
-        return back()->with('success', 'Request status updated to "'.$validated['status'].'".');
+        return back()->with('success', 'Request status updated to "' . $validated['status'] . '".');
     }
 
-    /**
-     * Accept a service request (sets status to "In Review").
-     * Explicit action for staff to mark a pending request as taken.
-     */
     public function acceptRequest(ServiceRequest $serviceRequest)
     {
         $this->authorizeRequestAccess($serviceRequest);
+
+        $serviceRequest->loadMissing(['service', 'payment']);
 
         if ($serviceRequest->status !== 'Pending') {
             return back()->with('error', 'Only pending requests can be accepted.');
@@ -135,7 +137,17 @@ class ServiceRequestController extends Controller
             'accepted_at' => now(),
         ]);
 
-        // Broadcast the acceptance event
+        // ✅ FIXED: prevents duplicate payments
+        Payment::firstOrCreate(
+            ['service_request_id' => $serviceRequest->id],
+            [
+                'amount' => $serviceRequest->service->price,
+                'currency' => 'USD',
+                'payment_method' => 'cash',
+                'status' => 'pending',
+            ]
+        );
+
         ServiceRequestStatusChanged::dispatch(
             $serviceRequest,
             $previousStatus,
@@ -143,7 +155,6 @@ class ServiceRequestController extends Controller
             'Request marked as taken by office staff.'
         );
 
-        // Notify citizen that request was accepted
         $serviceRequest->citizen->notify(
             new ServiceRequestStatusUpdated(
                 $serviceRequest,
@@ -151,14 +162,12 @@ class ServiceRequestController extends Controller
                 'Your request is now under review by the office.'
             )
         );
+
         NotificationRealtimeBroadcaster::broadcastLatest($serviceRequest->citizen);
 
         return back()->with('success', 'Request marked as taken and moved to "In Review".');
     }
 
-    /**
-     * Upload an official response PDF document for a request.
-     */
     public function uploadDocument(Request $request, ServiceRequest $serviceRequest)
     {
         $this->authorizeRequestAccess($serviceRequest);
@@ -168,15 +177,14 @@ class ServiceRequestController extends Controller
                 'required',
                 'file',
                 'mimes:pdf',
-                'max:10240', // 10 MB
+                'max:10240',
             ],
         ]);
 
         $uploadedFile = $request->file('response_document');
 
-        // Store under a per-request folder: official-responses/{request_id}/filename
         $filePath = $uploadedFile->store(
-            'official-responses/'.$serviceRequest->id,
+            'official-responses/' . $serviceRequest->id,
             'private'
         );
 
@@ -189,20 +197,16 @@ class ServiceRequestController extends Controller
         return back()->with('success', 'Official response document uploaded successfully.');
     }
 
-    /**
-     * Delete an official response document.
-     * Only official_response type documents can be deleted by municipality staff.
-     */
     public function deleteDocument(ServiceRequest $serviceRequest, RequestDocument $document)
     {
         $this->authorizeRequestAccess($serviceRequest);
 
         if ($document->service_request_id !== $serviceRequest->id) {
-            abort(403, 'Document does not belong to this request.');
+            abort(403);
         }
 
         if ($document->type !== 'official_response') {
-            abort(403, 'Only official response documents can be deleted by staff.');
+            abort(403);
         }
 
         Storage::disk('private')->delete($document->file_path);
@@ -216,44 +220,68 @@ class ServiceRequestController extends Controller
         $this->authorizeRequestAccess($serviceRequest);
 
         if ($document->service_request_id !== $serviceRequest->id) {
-            abort(404, 'Document not found.');
+            abort(404);
         }
 
         return Storage::disk('private')->download($document->file_path);
     }
 
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Get all office IDs belonging to the authenticated user's municipality.
-     */
-    /**
-     * @return list<int>
-     */
     private function getAccessibleOfficeIds(): array
     {
         $ids = Auth::user()->accessibleOfficeIds();
 
         if ($ids === []) {
-            abort(403, 'No office access is assigned to your account.');
+            abort(403);
         }
 
         return $ids;
     }
 
-    /**
-     * Abort 403 if the service request does not belong to this municipality's offices.
-     */
     private function authorizeRequestAccess(ServiceRequest $serviceRequest): void
     {
         $officeIds = $this->getAccessibleOfficeIds();
 
-        $belongs = in_array($serviceRequest->service->office_id, $officeIds, true);
-
-        if (! $belongs) {
-            abort(403, 'You do not have permission to manage this request.');
+        if (! in_array($serviceRequest->service->office_id, $officeIds, true)) {
+            abort(403);
         }
+    }
+
+    public function confirmPayment(ServiceRequest $serviceRequest)
+    {
+        $this->authorizeRequestAccess($serviceRequest);
+
+        $serviceRequest->loadMissing('payment');
+
+        $payment = $serviceRequest->payment;
+
+        if (! $payment || $payment->isPaid()) {
+            return back()->with('error', 'Payment already confirmed or not found.');
+        }
+
+        $payment->update([
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $serviceRequest->update([
+            'status' => 'Approved',
+            'office_notes' => 'Payment verified and confirmed by office staff on ' .
+                now()->format('M d, Y \a\t g:i A') . '.',
+        ]);
+
+        $serviceRequest->citizen->notify(
+            new ServiceRequestStatusUpdated(
+                $serviceRequest,
+                'Approved',
+                'Your payment has been verified. Your request is now approved.'
+            )
+        );
+
+        try {
+            app(NotificationRealtimeBroadcaster::class)
+                ->broadcastLatest($serviceRequest->citizen);
+        } catch (\Exception $e) {}
+
+        return back()->with('success', 'Payment confirmed. Request automatically approved.');
     }
 }

@@ -68,4 +68,20 @@ class ServiceRequest extends Model
     {
         return $this->hasMany(Message::class);
     }
+
+    public function hasPendingPayment(): bool
+{
+    return $this->payment !== null && $this->payment->isPending();
+}
+
+public function isPaid(): bool
+{
+    return $this->payment !== null && $this->payment->isPaid();
+}
+
+public function needsPayment(): bool
+{
+    // Payment panel shows only after officer marks as taken (In Review)
+    return $this->status === 'In Review' && $this->payment !== null;
+}
 }

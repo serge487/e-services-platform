@@ -26,6 +26,8 @@ class ServiceRequestController extends Controller
             'service.office',
             'service.category',
             'requestDocuments',
+            'payment', 
+
         ])
             ->where('citizen_id', $citizenId)
             ->latest()
