@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Citizen Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100">
 
@@ -50,11 +51,11 @@
 
         <!-- Header row with title + settings icon -->
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Welcome, {{ auth()->user()->name }}! 👋</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Welcome, {{ auth()->user()->name }}! </h1>
 
             <!-- Settings icon button -->
             <button
-                onclick="document.getElementById('settings-modal').classList.remove('hidden')"
+                data-bs-toggle="modal" data-bs-target="#settings-modal"
                 class="p-2 rounded-full hover:bg-gray-200 transition"
                 title="Edit profile"
             >
@@ -90,121 +91,6 @@
 
 </div>
 
-<!-- ===== SETTINGS MODAL ===== -->
-<div
-    id="settings-modal"
-    class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-    onclick="if(event.target===this) this.classList.add('hidden')"
->
-    <div class="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 p-6">
-
-        <!-- Modal header -->
-        <div class="flex items-center justify-between mb-5">
-            <div>
-                <h2 class="text-base font-semibold text-gray-900">Personal Information</h2>
-                <p class="text-xs text-gray-500 mt-0.5">Update your name and phone number</p>
-            </div>
-            <button
-                onclick="document.getElementById('settings-modal').classList.add('hidden')"
-                class="text-gray-400 hover:text-gray-600 transition"
-            >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Avatar + identity -->
-        <div class="flex items-center gap-3 pb-4 mb-4 border-b border-gray-100">
-            <div class="w-11 h-11 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold text-sm">
-                {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
-            </div>
-            <div>
-                <p class="text-sm font-medium text-gray-900">{{ auth()->user()->name }}</p>
-                <p class="text-xs text-gray-400">Citizen ID #{{ auth()->id() }}</p>
-            </div>
-        </div>
-
-        <!-- Form -->
-        <form action="{{ route('citizen.profile.update') }}" method="POST">
-            @csrf
-            @method('PATCH')
-
-            <div class="space-y-4">
-
-                <!-- Name -->
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1.5">Full name</label>
-                    <input
-                        type="text"
-                        name="name"
-                        value="{{ old('name', auth()->user()->name) }}"
-                        required
-                        class="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                    @error('name')
-                        <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Phone number -->
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1.5">Phone number</label>
-                    <input
-                        type="tel"
-                        name="phone_number"
-                        value="{{ old('phone_number', auth()->user()->phone_number) }}"
-                        required
-                        class="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                    @error('phone_number')
-                        <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Email (read-only) -->
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1.5">
-                        Email address
-                        <span class="ml-1.5 text-[10px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded border border-gray-200">read-only</span>
-                    </label>
-                    <input
-                        type="email"
-                        value="{{ auth()->user()->email }}"
-                        readonly
-                        class="w-full h-9 px-3 text-sm border border-gray-100 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed"
-                    >
-                </div>
-
-            </div>
-
-            <!-- Actions -->
-            <div class="flex justify-end gap-2 mt-5">
-                <button
-                    type="button"
-                    onclick="document.getElementById('settings-modal').classList.add('hidden')"
-                    class="px-4 h-9 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    class="px-4 h-9 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition"
-                >
-                    Save changes
-                </button>
-            </div>
-        </form>
-
-    </div>
-</div>
-
-<!-- Re-open modal if there were validation errors -->
-@if($errors->any())
-<script>
-    document.getElementById('settings-modal').classList.remove('hidden');
-</script>
-@endif
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

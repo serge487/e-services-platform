@@ -314,7 +314,7 @@
 
 {{-- ── Main content ── --}}
 {{-- <div id="main-content"> --}}
-    <div id="main-content" style="margin-left:260px; width:calc(100% - 260px);">
+    <div id="main-content">
 
     {{-- Topbar --}}
     <div id="topbar">
@@ -343,14 +343,17 @@
                             {{ $citizenStats['unread_notifications'] ?? 0 }}
                         </span>
                     </a>
+                   
+                   
                     <button
-                        onclick="document.getElementById('settings-modal').style.display='flex'"
-                        title="Edit profile"
-                        class="topbar-stat"
-                        style="background:none; border:none; cursor:pointer;"
-                    >
-                        <i class="bi bi-gear"></i>
+                        data-bs-toggle="modal"
+                         data-bs-target="#settings-modal"
+                            title="Edit profile"
+                            class="topbar-stat"
+                            style="background:none; border:none; cursor:pointer;">
+                             <i class="bi bi-gear"></i>
                     </button>
+                    
                 @endif
             @endauth
         </div>
@@ -365,7 +368,152 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{{-- ── Profile Settings Modal (available on all citizen pages) ── --}}
+@auth
+@if(Auth::user()->role === 'citizen')
+<div class="modal fade" id="settings-modal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:14px; border:none; box-shadow:0 8px 32px rgba(0,0,0,0.15);">
 
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" style="font-size:0.95rem;color:#1e293b;">
+                        Personal Information
+                    </h5>
+                    <p class="text-muted mb-0" style="font-size:0.75rem;">
+                        Update your name and phone number
+                    </p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body px-4 pt-3 pb-4">
+
+                {{-- Avatar + identity --}}
+                <div class="d-flex align-items-center gap-3 pb-3 mb-3 border-bottom">
+                    <div style="
+                        width:44px; height:44px;
+                        border-radius:50%;
+                        background:#ecfdf5;
+                        border:1px solid #d9eee7;
+                        display:flex; align-items:center; justify-content:center;
+                        font-weight:700; font-size:0.9rem;
+                        color:#0a5c4a;
+                        flex-shrink:0;
+                    ">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                    </div>
+                    <div>
+                        <div style="font-size:0.88rem;font-weight:600;color:#1e293b;">
+                            {{ Auth::user()->name }}
+                        </div>
+                        <div style="font-size:0.73rem;color:#94a3b8;">
+                            Citizen ID #{{ Auth::id() }}
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Validation errors --}}
+                @if($errors->any())
+                    <div class="alert alert-danger py-2 small mb-3">
+                        {{ $errors->first() }}
+                    </div>
+                @endif
+
+                {{-- Form --}}
+                <form action="{{ route('citizen.profile.update', absolute: false) }}"
+                      method="POST"
+                      id="profile-update-form">
+                    @csrf
+                    @method('PATCH')
+
+                    {{-- Name --}}
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:0.78rem;font-weight:600;color:#64748b;">
+                            Full Name
+                        </label>
+                        <input
+                            type="text"
+                            name="name"
+                            value="{{ old('name', Auth::user()->name) }}"
+                            required
+                            class="form-control form-control-sm @error('name') is-invalid @enderror"
+                            style="border-radius:8px;"
+                        >
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Phone --}}
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:0.78rem;font-weight:600;color:#64748b;">
+                            Phone Number
+                        </label>
+                        <input
+                            type="tel"
+                            name="phone_number"
+                            value="{{ old('phone_number', Auth::user()->phone_number) }}"
+                            required
+                            placeholder="+961 XX XXX XXX"
+                            class="form-control form-control-sm @error('phone_number') is-invalid @enderror"
+                            style="border-radius:8px;"
+                        >
+                        @error('phone_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Email (read-only) --}}
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:0.78rem;font-weight:600;color:#64748b;">
+                            Email Address
+                            <span class="badge bg-light text-muted border ms-1"
+                                  style="font-size:0.65rem;font-weight:500;">read-only</span>
+                        </label>
+                        <input
+                            type="email"
+                            value="{{ Auth::user()->email }}"
+                            readonly
+                            class="form-control form-control-sm bg-light text-muted"
+                            style="border-radius:8px; cursor:not-allowed;"
+                        >
+                    </div>
+
+                </form>
+            </div>
+
+            <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary px-4"
+                        style="border-radius:8px;"
+                        data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="submit"
+                        form="profile-update-form"
+                        class="btn btn-sm px-4 fw-semibold"
+                        style="background:#0a5c4a;color:#fff;border-radius:8px;border:none;">
+                    Save Changes
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{{-- Auto-open modal if there were validation errors (form was submitted) --}}
+@if($errors->any())
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var modal = new bootstrap.Modal(document.getElementById('settings-modal'));
+        modal.show();
+    });
+</script>
+@endif
+
+@endif
+@endauth
 @stack('scripts')
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 </body>
