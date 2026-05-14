@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Municipality;
+use App\Models\Office;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -42,5 +44,45 @@ class UserFactory extends Factory
             'role' => 'citizen',
             'identity_verified_at' => now(),
         ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+            'municipality_id' => null,
+            'office_id' => null,
+            'is_active' => true,
+        ]);
+    }
+
+    public function municipalityAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'municipality',
+            'municipality_id' => Municipality::factory(),
+            'office_id' => null,
+        ]);
+    }
+
+    /**
+     * Ensures an office exists for the user’s municipality and sets office_id.
+     */
+    public function officeStaff(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'office_staff',
+            'municipality_id' => Municipality::factory(),
+        ])->afterCreating(function (User $user): void {
+            if ($user->role !== 'office_staff' || $user->office_id) {
+                return;
+            }
+
+            $municipalityId = $user->municipality_id;
+            $office = Office::query()->where('municipality_id', $municipalityId)->first()
+                ?? Office::factory()->create(['municipality_id' => $municipalityId]);
+
+            $user->forceFill(['office_id' => $office->id])->save();
+        });
     }
 }

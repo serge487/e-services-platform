@@ -1,7 +1,11 @@
 @if($appointments->isEmpty())
     <div class="text-center py-5 text-muted">
         <i class="bi bi-calendar2-check fs-1 d-block mb-2"></i>
-        <p class="mb-0">You have no appointments yet.</p>
+        @if(request()->filled('booking_status'))
+            <p class="mb-0">No bookings with this status.</p>
+        @else
+            <p class="mb-0">You have no appointments yet.</p>
+        @endif
     </div>
 @else
     <div class="list-group list-group-flush">
@@ -35,6 +39,11 @@
                             <form method="POST" action="{{ route('citizen.appointments.cancel', $appointment, absolute: false) }}" class="mt-2">
                                 @csrf
                                 @method('PATCH')
+                                @foreach (['slot_office_id', 'slot_date', 'slot_q', 'booking_status'] as $filterKey)
+                                    @if (request()->filled($filterKey))
+                                        <input type="hidden" name="{{ $filterKey }}" value="{{ request($filterKey) }}">
+                                    @endif
+                                @endforeach
                                 <button type="submit" class="btn btn-outline-danger btn-sm">Cancel</button>
                             </form>
                         @endif

@@ -438,10 +438,16 @@ const officeIcon = L.divIcon({
 });
 
 const markerMap = {};
+let officeBounds = null;
 
 officesData.forEach(function (office) {
-    const marker = L.marker([office.latitude, office.longitude], { icon: officeIcon })
+    const latLng = [office.latitude, office.longitude];
+    const marker = L.marker(latLng, { icon: officeIcon })
         .addTo(portalMap);
+
+    officeBounds = officeBounds
+        ? officeBounds.extend(latLng)
+        : L.latLngBounds(latLng, latLng);
 
     marker.bindPopup(`
         <div class="popup-name">${office.name}</div>
@@ -452,6 +458,10 @@ officesData.forEach(function (office) {
     marker.on('click', () => highlightCard(office.id));
     markerMap[office.id] = marker;
 });
+
+if (officeBounds && officeBounds.isValid()) {
+    portalMap.fitBounds(officeBounds.pad(0.12));
+}
 
 // Card click → pan map to office
 document.querySelectorAll('.office-card').forEach(function (card) {

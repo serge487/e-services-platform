@@ -34,11 +34,11 @@ class CitizenIdentityProfile extends Model
     protected function casts(): array
     {
         return [
-            'date_of_birth'   => 'date',
-            'id_issue_date'   => 'date',
-            'id_expiry_date'  => 'date',
-            'extracted_at'    => 'datetime',
-            'confirmed_at'    => 'datetime',
+            'date_of_birth' => 'date',
+            'id_issue_date' => 'date',
+            'id_expiry_date' => 'date',
+            'extracted_at' => 'datetime',
+            'confirmed_at' => 'datetime',
         ];
     }
 

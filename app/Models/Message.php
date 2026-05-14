@@ -9,7 +9,7 @@ class Message extends Model
 {
     protected $fillable = [
         'service_request_id', 'sender_id',
-        'content', 'read_at'
+        'content', 'read_at',
     ];
 
     protected function casts(): array

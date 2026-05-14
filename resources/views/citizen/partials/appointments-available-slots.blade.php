@@ -1,7 +1,11 @@
 @if($availableSlots->isEmpty())
     <div class="text-center py-5 text-muted">
         <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
-        <p class="mb-0">No available slots right now.</p>
+        @if(request()->filled('slot_office_id') || request()->filled('slot_date') || request()->filled('slot_q'))
+            <p class="mb-0">No slots match your filters. Try clearing or widening your search.</p>
+        @else
+            <p class="mb-0">No available slots right now.</p>
+        @endif
     </div>
 @else
     <div class="table-responsive">
@@ -26,6 +30,11 @@
                             <form method="POST" action="{{ route('citizen.appointments.store', absolute: false) }}">
                                 @csrf
                                 <input type="hidden" name="officer_time_slot_id" value="{{ $slot->id }}">
+                                @foreach (['slot_office_id', 'slot_date', 'slot_q', 'booking_status'] as $filterKey)
+                                    @if (request()->filled($filterKey))
+                                        <input type="hidden" name="{{ $filterKey }}" value="{{ request($filterKey) }}">
+                                    @endif
+                                @endforeach
                                 <button type="submit" class="btn btn-sm btn-primary">
                                     <i class="bi bi-calendar-plus me-1"></i> Book
                                 </button>

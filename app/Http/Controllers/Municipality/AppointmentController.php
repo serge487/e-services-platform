@@ -22,8 +22,11 @@ class AppointmentController extends Controller
         $officeIds = $this->getAccessibleOfficeIds();
         $statusFilter = $request->query('status');
         $search = trim((string) $request->query('search', ''));
+        $pagePath = route('municipality.appointments', [], false);
         $appointments = $this->appointmentsQuery($officeIds, $statusFilter, $search)->paginate(20, ['*'], 'appointments_page');
+        $appointments->withPath($pagePath);
         $timeSlots = $this->timeSlotsQuery($officeIds)->paginate(20, ['*'], 'slots_page');
+        $timeSlots->withPath($pagePath);
 
         $offices = Office::query()->whereIn('id', $officeIds)->orderBy('name')->get();
         $officers = User::query()
@@ -47,8 +50,11 @@ class AppointmentController extends Controller
         $officeIds = $this->getAccessibleOfficeIds();
         $statusFilter = $request->query('status');
         $search = trim((string) $request->query('search', ''));
+        $pagePath = route('municipality.appointments', [], false);
         $appointments = $this->appointmentsQuery($officeIds, $statusFilter, $search)->paginate(20, ['*'], 'appointments_page');
+        $appointments->withPath($pagePath);
         $timeSlots = $this->timeSlotsQuery($officeIds)->paginate(20, ['*'], 'slots_page');
+        $timeSlots->withPath($pagePath);
 
         return response()->json([
             'time_slots_html' => view('municipality.partials.appointments-time-slots', compact('timeSlots'))->render(),
@@ -332,4 +338,3 @@ class AppointmentController extends Controller
             ->orderBy('start_time');
     }
 }
-

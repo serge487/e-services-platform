@@ -11,6 +11,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AdminSeeder::class,
             LebaneseMunicipalityServicesSeeder::class,
+            LebanonWideMunicipalitiesSeeder::class,
+            CitizenAppointmentsDemoSeeder::class,
+            MunicipalityServicesAndAppointmentsSeeder::class,
         ]);
     }
 }

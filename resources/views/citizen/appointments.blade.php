@@ -23,6 +23,53 @@
     </div>
 @endif
 
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ route('citizen.appointments', absolute: false) }}" class="row g-2 g-md-3 align-items-end">
+            <div class="col-12 col-md-6 col-lg-4">
+                <label for="filter-slot-office" class="form-label small text-muted mb-1">Office (available slots)</label>
+                <select id="filter-slot-office" name="slot_office_id" class="form-select form-select-sm">
+                    <option value="">All offices</option>
+                    @foreach($officesForSlotFilter as $office)
+                        <option value="{{ $office->id }}" @selected((string) request('slot_office_id') === (string) $office->id)>
+                            {{ $office->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-2">
+                <label for="filter-slot-date" class="form-label small text-muted mb-1">Slot date</label>
+                <input id="filter-slot-date" type="date" name="slot_date" class="form-control form-control-sm" value="{{ request('slot_date') }}">
+            </div>
+            <div class="col-12 col-md-6 col-lg-3">
+                <label for="filter-slot-q" class="form-label small text-muted mb-1">Search office or officer</label>
+                <input id="filter-slot-q" type="search" name="slot_q" class="form-control form-control-sm" value="{{ request('slot_q') }}" placeholder="e.g. Tripoli, James…" autocomplete="off">
+            </div>
+            <div class="col-12 col-sm-6 col-lg-2">
+                <label for="filter-booking-status" class="form-label small text-muted mb-1">My bookings status</label>
+                <select id="filter-booking-status" name="booking_status" class="form-select form-select-sm">
+                    <option value="">All statuses</option>
+                    @foreach([
+                        'scheduled' => 'Scheduled',
+                        'confirmed' => 'Confirmed',
+                        'completed' => 'Completed',
+                        'cancelled' => 'Cancelled',
+                        'no_show' => 'No show',
+                    ] as $value => $label)
+                        <option value="{{ $value }}" @selected(request('booking_status') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-12 col-lg-2 d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-funnel me-1"></i>Apply
+                </button>
+                <a href="{{ route('citizen.appointments', absolute: false) }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm h-100">
@@ -67,7 +114,10 @@
             isLoading = true;
 
             try {
-                const response = await fetch('{{ route('citizen.appointments.live', absolute: false) }}', {
+                const qs = window.location.search || '';
+                const liveUrl = '{{ route('citizen.appointments.live', absolute: false) }}' + qs;
+
+                const response = await fetch(liveUrl, {
                     credentials: 'same-origin',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',

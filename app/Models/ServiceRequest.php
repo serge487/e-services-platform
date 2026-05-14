@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Database\Factories\ServiceRequestFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,9 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ServiceRequest extends Model
 {
+    /** @use HasFactory<ServiceRequestFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'citizen_id', 'service_id', 'status',
-        'qr_code_token', 'office_notes', 'accepted_by', 'accepted_at'
+        'qr_code_token', 'office_notes', 'accepted_by', 'accepted_at',
     ];
 
     protected function casts(): array
@@ -70,18 +75,18 @@ class ServiceRequest extends Model
     }
 
     public function hasPendingPayment(): bool
-{
-    return $this->payment !== null && $this->payment->isPending();
-}
+    {
+        return $this->payment !== null && $this->payment->isPending();
+    }
 
-public function isPaid(): bool
-{
-    return $this->payment !== null && $this->payment->isPaid();
-}
+    public function isPaid(): bool
+    {
+        return $this->payment !== null && $this->payment->isPaid();
+    }
 
-public function needsPayment(): bool
-{
-    // Payment panel shows only after officer marks as taken (In Review)
-    return $this->status === 'In Review' && $this->payment !== null;
-}
+    public function needsPayment(): bool
+    {
+        // Payment panel shows only after officer marks as taken (In Review)
+        return $this->status === 'In Review' && $this->payment !== null;
+    }
 }
