@@ -25,9 +25,9 @@ class Payment extends Model
     protected function casts(): array
     {
         return [
-            'amount'        => 'decimal:2',
+            'amount' => 'decimal:2',
             'exchange_rate' => 'decimal:8',
-            'paid_at'       => 'datetime',
+            'paid_at' => 'datetime',
         ];
     }
 
@@ -51,22 +51,22 @@ class Payment extends Model
     public function methodLabel(): string
     {
         return match ($this->payment_method) {
-            'whish'  => 'Whish Money',
+            'whish' => 'Whish Money',
             'crypto' => 'Cryptocurrency',
-            'cash'   => 'Cash on Pickup',
-            'card'   => 'Card',
-            default  => ucfirst($this->payment_method),
+            'cash' => 'Cash on Pickup',
+            'card' => 'Card',
+            default => ucfirst($this->payment_method),
         };
     }
 
     public function methodIcon(): string
     {
         return match ($this->payment_method) {
-            'whish'  => 'bi-phone',
+            'whish' => 'bi-phone',
             'crypto' => 'bi-currency-bitcoin',
-            'cash'   => 'bi-cash-coin',
-            'card'   => 'bi-credit-card',
-            default  => 'bi-cash',
+            'cash' => 'bi-cash-coin',
+            'card' => 'bi-credit-card',
+            default => 'bi-cash',
         };
     }
 }

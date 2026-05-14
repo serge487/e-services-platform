@@ -2,24 +2,29 @@
 
 namespace App\Models;
 
+use Database\Factories\OfficeFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Office extends Model
 {
+    /** @use HasFactory<OfficeFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'municipality_id', 'name', 'address',
         'latitude', 'longitude', 'working_hours',
-        'contact_info'
+        'contact_info',
     ];
 
-  // Replace with this:
-protected $casts = [
-    'working_hours' => 'array',
-    'latitude'      => 'decimal:8',
-    'longitude'     => 'decimal:8',
-];
+    // Replace with this:
+    protected $casts = [
+        'working_hours' => 'array',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
+    ];
 
     public function municipality(): BelongsTo
     {

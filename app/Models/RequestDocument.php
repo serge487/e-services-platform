@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RequestDocument extends Model
 {
     protected $fillable = [
-        'service_request_id', 'file_path', 'type'
+        'service_request_id', 'file_path', 'type',
     ];
 
     public function serviceRequest(): BelongsTo

@@ -12,14 +12,14 @@ class Feedback extends Model
     protected $fillable = [
         'office_id', 'service_id', 'citizen_id',
         'rating', 'citizen_comment', 'office_response',
-        'is_private'
+        'is_private',
     ];
 
     protected function casts(): array
     {
         return [
             'is_private' => 'boolean',
-            'rating'     => 'integer',
+            'rating' => 'integer',
         ];
     }
 
