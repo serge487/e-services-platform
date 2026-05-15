@@ -47,6 +47,10 @@ class NotificationRealtimeBroadcaster
                 : route('municipality.notifications.chat', ['id' => $notification->id], absolute: false);
         }
 
+        if (data_get($data, 'type') === 'feedback_reply' && $user->role === 'citizen') {
+            return route('citizen.notifications.feedback-reply', ['id' => $notification->id], absolute: false);
+        }
+
         $serviceRequestId = data_get($data, 'service_request_id');
         if ($serviceRequestId !== null && $serviceRequestId !== '') {
             if ($user->role === 'citizen') {

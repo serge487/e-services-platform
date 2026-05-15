@@ -180,6 +180,15 @@
         padding: 0.12rem 0.55rem;
         border-radius: 20px;
     }
+    .badge-rating {
+        font-size: 0.68rem;
+        background: #fffbeb;
+        color: #b45309;
+        padding: 0.12rem 0.55rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .badge-rating i { color: #f59e0b; }
 
     /* ── Map card ── */
     .map-card {
@@ -204,7 +213,16 @@
     /* ── Map popup ── */
     .leaflet-popup-content { font-size: 0.83rem; min-width: 175px; }
     .popup-name { font-weight: 700; color: #0a5c4a; margin-bottom: 0.2rem; }
-    .popup-addr { color: #64748b; font-size: 0.75rem; margin-bottom: 0.5rem; line-height: 1.35; }
+    .popup-addr { color: #64748b; font-size: 0.75rem; margin-bottom: 0.35rem; line-height: 1.35; }
+    .popup-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.78rem;
+    }
+    .popup-rating .popup-stars { color: #f59e0b; letter-spacing: -1px; }
+    .popup-rating .popup-rating-none { color: #94a3b8; font-size: 0.72rem; }
     .popup-btn {
         display: block;
         text-align: center;
@@ -348,6 +366,14 @@
                         </span>
                     @endif
 
+                    @if(($office->public_feedback_count ?? 0) > 0)
+                        <span class="badge-rating" title="{{ $office->public_feedback_count }} public review(s)">
+                            <i class="bi bi-star-fill"></i>
+                            {{ number_format((float) $office->avg_rating, 1) }}
+                            ({{ $office->public_feedback_count }})
+                        </span>
+                    @endif
+
                     {{-- @if($todayHours)
                         @if($todayHours['is_open'])
                             <span class="badge-hours-open">
@@ -415,6 +441,23 @@
 <script>
 const officesData = @json($officesForMap);
 
+function popupRatingHtml(office) {
+    if (!office.feedback_count || office.avg_rating === null) {
+        return '<div class="popup-rating"><span class="popup-rating-none">No reviews yet</span></div>';
+    }
+    const full = Math.round(office.avg_rating);
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+        stars += i <= full
+            ? '<i class="bi bi-star-fill"></i>'
+            : '<i class="bi bi-star"></i>';
+    }
+    return `<div class="popup-rating">
+        <span class="popup-stars">${stars}</span>
+        <span><strong>${office.avg_rating.toFixed(1)}</strong> (${office.feedback_count})</span>
+    </div>`;
+}
+
 const portalMap = L.map('portal-map').setView([33.8938, 35.5018], 8);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -452,6 +495,7 @@ officesData.forEach(function (office) {
     marker.bindPopup(`
         <div class="popup-name">${office.name}</div>
         <div class="popup-addr">${office.address}</div>
+        ${popupRatingHtml(office)}
         <a href="${office.url}" class="popup-btn">View Office →</a>
     `);
 

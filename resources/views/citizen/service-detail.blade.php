@@ -165,7 +165,7 @@
             @endif
 
             <!-- Feedbacks -->
-            @if($service->feedbacks && $service->feedbacks->count() > 0)
+            @if($service->feedbacks->isNotEmpty())
                 <div class="card border-0 shadow-sm">
                 <div class="card-header bg-light border-0">
                         <h6 class="mb-0 service-card-title"><i class="bi bi-star-fill"></i> User Feedback</h6>
@@ -185,6 +185,14 @@
                                     <small class="text-muted">{{ $feedback->created_at->diffForHumans() }}</small>
                                 </div>
                                 <p class="mb-0 mt-2">{{ $feedback->citizen_comment }}</p>
+                                @if($feedback->hasPublicOfficeResponse())
+                                    <div class="mt-2 p-2 rounded bg-light border-start border-3 border-primary">
+                                        <div class="small fw-bold text-primary mb-1">
+                                            <i class="bi bi-reply me-1"></i>Municipality reply
+                                        </div>
+                                        <p class="mb-0 small">{{ $feedback->office_response }}</p>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>

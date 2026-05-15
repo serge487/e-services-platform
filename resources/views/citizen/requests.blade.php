@@ -334,6 +334,29 @@
                                         </span>
                                     @endif
                                 </div>
+
+                                @if($req->feedback?->office_response)
+                                    <a href="{{ route('citizen.service-requests.show', $req, absolute: false) }}#citizen-feedback-card"
+                                       class="d-flex align-items-center gap-2 mt-2 p-2 rounded text-decoration-none"
+                                       style="background:#ecfdf5;border:1px solid #bbf7d0;font-size:0.8rem;color:#065f46;">
+                                        <i class="bi bi-reply-fill"></i>
+                                        <span><strong>Municipality replied</strong> — tap to read</span>
+                                    </a>
+                                @elseif(! $req->feedback)
+                                    <a href="{{ route('citizen.service-requests.show', $req, absolute: false) }}#citizen-feedback-card"
+                                       class="d-flex align-items-center gap-2 mt-2 p-2 rounded text-decoration-none"
+                                       style="background:#fffbeb;border:1px solid #fde68a;font-size:0.8rem;color:#92400e;">
+                                        <i class="bi bi-star"></i>
+                                        <span><strong>Rate this service</strong> — payment confirmed</span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('citizen.service-requests.show', $req, absolute: false) }}#citizen-feedback-card"
+                                       class="d-flex align-items-center gap-2 mt-2 p-2 rounded text-decoration-none"
+                                       style="background:#eff6ff;border:1px solid #bfdbfe;font-size:0.8rem;color:#1d4ed8;">
+                                        <i class="bi bi-check-circle"></i>
+                                        <span>Your review submitted — view details</span>
+                                    </a>
+                                @endif
                             @endif
 
                             {{-- Office notes --}}

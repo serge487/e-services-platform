@@ -42,7 +42,11 @@ class ServiceController extends Controller
      */
     public function show(Service $service)
     {
-        $service->load(['office', 'category', 'feedbacks.citizen']);
+        $service->load([
+            'office',
+            'category',
+            'feedbacks' => fn ($query) => $query->publicReview()->with('citizen')->latest(),
+        ]);
 
         return view('citizen.service-detail', compact('service'));
     }

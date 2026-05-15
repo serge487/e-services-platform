@@ -64,6 +64,21 @@
     }
     .office-title { font-weight: 800; color: var(--detail-primary); margin: 0; font-size: 1.25rem; }
     .office-subtitle { color: #64748b; font-size: 0.83rem; margin-top: 0.1rem; }
+    .office-header { flex-wrap: wrap; }
+    .btn-view-reviews {
+        display: inline-flex; align-items: center; gap: 0.45rem;
+        background: #fff; color: var(--detail-primary);
+        border: 1.5px solid var(--detail-primary);
+        border-radius: 10px; padding: 0.55rem 1rem;
+        font-size: 0.85rem; font-weight: 700; text-decoration: none;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+    }
+    .btn-view-reviews:hover {
+        background: var(--detail-primary); color: #fff;
+    }
+    .btn-view-reviews .review-avg { color: #f59e0b; }
+    .btn-view-reviews:hover .review-avg { color: #fde68a; }
 
     /* ── Info rows ── */
     .info-row {
@@ -203,15 +218,29 @@
 
 {{-- Office header --}}
 <div class="office-header">
-    <div class="office-icon-box">🏛️</div>
-    <div>
-        <h1 class="office-title">{{ $office->name }}</h1>
-        @if($office->municipality)
-            <div class="office-subtitle">
-                <i class="bi bi-bank me-1"></i>{{ $office->municipality->name }}
-            </div>
-        @endif
+    <div class="d-flex align-items-center gap-3 flex-grow-1 min-width-0">
+        <div class="office-icon-box">🏛️</div>
+        <div class="min-width-0">
+            <h1 class="office-title">{{ $office->name }}</h1>
+            @if($office->municipality)
+                <div class="office-subtitle">
+                    <i class="bi bi-bank me-1"></i>{{ $office->municipality->name }}
+                </div>
+            @endif
+        </div>
     </div>
+    <a href="{{ route('portal.office.feedbacks', $office, absolute: false) }}"
+       class="btn-view-reviews ms-lg-auto">
+        <i class="bi bi-star-fill review-avg"></i>
+        @if(($feedbackStats['count'] ?? 0) > 0)
+            View reviews
+            <span class="review-avg">{{ number_format($feedbackStats['average'], 1) }}</span>
+            <span class="text-muted fw-normal">({{ $feedbackStats['count'] }})</span>
+        @else
+            View reviews
+            <span class="text-muted fw-normal small">(none yet)</span>
+        @endif
+    </a>
 </div>
 
 <div class="row g-4">

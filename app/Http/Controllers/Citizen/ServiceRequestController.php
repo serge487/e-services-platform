@@ -26,8 +26,8 @@ class ServiceRequestController extends Controller
             'service.office',
             'service.category',
             'requestDocuments',
-            'payment', 
-
+            'payment',
+            'feedback',
         ])
             ->where('citizen_id', $citizenId)
             ->latest()
@@ -51,6 +51,7 @@ class ServiceRequestController extends Controller
             'service.category',
             'requestDocuments',
             'payment',
+            'feedback',
             'messages.sender',
         ]);
 

@@ -143,6 +143,43 @@
 }
 .detail-page .btn-pay-now:hover { background: #b45309; color: #fff; }
 
+/* Feedback */
+.detail-page .star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 0.15rem;
+}
+.detail-page .star-rating input { display: none; }
+.detail-page .star-rating label {
+    cursor: pointer;
+    font-size: 1.75rem;
+    color: #d1d5db;
+    transition: color 0.1s;
+}
+.detail-page .star-rating label:hover,
+.detail-page .star-rating label:hover ~ label,
+.detail-page .star-rating input:checked ~ label {
+    color: #f59e0b;
+}
+.detail-page .feedback-submitted {
+    background: var(--g-soft);
+    border: 1px solid var(--g-border);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+}
+.detail-page .btn-submit-feedback {
+    background: var(--g);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    transition: background 0.15s;
+}
+.detail-page .btn-submit-feedback:hover { background: var(--g-dark); color: #fff; }
+
 /* Office note */
 .detail-page .note-box {
     background: var(--g-soft);
@@ -242,6 +279,34 @@
             <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show mb-3">
+            <i class="bi bi-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($serviceRequest->isPaid())
+        @if($serviceRequest->feedback?->office_response)
+            <div class="alert alert-success alert-dismissible fade show mb-3">
+                <i class="bi bi-reply-fill me-2"></i>
+                <strong>Municipality replied to your review.</strong>
+                <a href="#citizen-feedback-card" class="alert-link ms-1">Read the reply below</a>.
+            </div>
+        @elseif($serviceRequest->canLeaveFeedback())
+            <div class="alert alert-warning alert-dismissible fade show mb-3">
+                <i class="bi bi-star me-2"></i>
+                <strong>Payment confirmed — you can rate this service.</strong>
+                <a href="#citizen-feedback-card" class="alert-link ms-1">Leave your review below</a>.
+            </div>
+        @elseif($serviceRequest->feedback)
+            <div class="alert alert-info alert-dismissible fade show mb-3">
+                <i class="bi bi-check-circle me-2"></i>
+                You submitted a review for this request.
+                <a href="#citizen-feedback-card" class="alert-link ms-1">View your review</a>.
+            </div>
+        @endif
     @endif
 
     <div class="row g-3">
@@ -369,6 +434,118 @@
                                     </span>
                                 @endif
                             </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            {{-- Rate & review (after payment confirmed) --}}
+            @if($serviceRequest->isPaid())
+                <div class="d-card" id="citizen-feedback-card">
+                    <div class="d-card-head">
+                        <i class="bi bi-star"></i> Rate This Service
+                    </div>
+                    <div class="d-card-body">
+                        @if($serviceRequest->feedback)
+                            <div class="feedback-submitted">
+                                <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                    <div>
+                                        <div class="fw-bold" style="color:var(--g);">Your review</div>
+                                        <div class="text-warning mt-1">
+                                            @for($i = 0; $i < $serviceRequest->feedback->rating; $i++)
+                                                <i class="bi bi-star-fill"></i>
+                                            @endfor
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ $serviceRequest->feedback->created_at->format('M d, Y') }}
+                                    </small>
+                                </div>
+                                <p class="mb-0 mt-2">{{ $serviceRequest->feedback->citizen_comment }}</p>
+                                @if($serviceRequest->feedback->is_private)
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="bi bi-lock me-1"></i>Private review — visible in the municipality portal only (not on the public service page).
+                                    </small>
+                                @else
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="bi bi-globe me-1"></i>Public review — visible on the service page.
+                                    </small>
+                                @endif
+
+                                <div id="municipality-reply-slot">
+                                @if($serviceRequest->feedback->office_response)
+                                    <div class="mt-3 p-3 rounded municipality-reply-block" style="background:#f8fafc;border-left:4px solid var(--g);">
+                                        <div class="fw-bold small mb-1" style="color:var(--g);">
+                                            <i class="bi bi-reply me-1"></i>Municipality reply
+                                        </div>
+                                        <p class="mb-0 small">{{ $serviceRequest->feedback->office_response }}</p>
+                                        @if($serviceRequest->feedback->office_response_is_private)
+                                            <small class="text-muted d-block mt-2">
+                                                <i class="bi bi-lock me-1"></i>Private reply — only you can see this message.
+                                            </small>
+                                        @else
+                                            <small class="text-muted d-block mt-2">
+                                                <i class="bi bi-globe me-1"></i>Public reply — also shown on the service page.
+                                            </small>
+                                        @endif
+                                    </div>
+                                @endif
+                                </div>
+                            </div>
+                        @elseif($serviceRequest->canLeaveFeedback())
+                            <p class="text-muted small mb-3">
+                                Payment is confirmed. Share your experience to help others choose this service.
+                            </p>
+                            <form method="POST"
+                                  action="{{ route('citizen.service-requests.feedback.store', $serviceRequest, absolute: false) }}">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="field-lbl mb-2">Rating</label>
+                                    <div class="star-rating">
+                                        @for($star = 5; $star >= 1; $star--)
+                                            <input type="radio"
+                                                   name="rating"
+                                                   id="rating-{{ $star }}"
+                                                   value="{{ $star }}"
+                                                   {{ (int) old('rating') === $star ? 'checked' : '' }}
+                                                   required>
+                                            <label for="rating-{{ $star }}" title="{{ $star }} stars">
+                                                <i class="bi bi-star-fill"></i>
+                                            </label>
+                                        @endfor
+                                    </div>
+                                    @error('rating')
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="mb-3">
+                                    <label for="citizen_comment" class="field-lbl mb-2">Your review</label>
+                                    <textarea name="citizen_comment"
+                                              id="citizen_comment"
+                                              class="form-control @error('citizen_comment') is-invalid @enderror"
+                                              rows="4"
+                                              maxlength="2000"
+                                              placeholder="Describe your experience with this office service (min. 10 characters)..."
+                                              required>{{ old('citizen_comment') }}</textarea>
+                                    @error('citizen_comment')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="is_private"
+                                           id="is_private"
+                                           value="1"
+                                           {{ old('is_private') ? 'checked' : '' }}>
+                                    <label class="form-check-label small" for="is_private">
+                                        Private review (municipality portal only — not on the public service page)
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn-submit-feedback">
+                                    <i class="bi bi-send me-1"></i>Submit Review
+                                </button>
+                            </form>
                         @endif
                     </div>
                 </div>
@@ -521,8 +698,52 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @if(auth()->check())
 if (typeof window.Echo !== 'undefined') {
-    window.Echo.private('service-request.{{ $serviceRequest->id }}')
-        .listen('service-request-status-changed', () => {
+    const requestId = {{ $serviceRequest->id }};
+    const citizenUserId = {{ auth()->id() }};
+
+    function injectMunicipalityReply(payload) {
+        if (Number(payload.service_request_id) !== requestId) {
+            return;
+        }
+        const slot = document.getElementById('municipality-reply-slot');
+        if (!slot || slot.querySelector('.municipality-reply-block')) {
+            return;
+        }
+        const isPrivate = Boolean(payload.office_response_is_private);
+        const visibility = isPrivate
+            ? '<small class="text-muted d-block mt-2"><i class="bi bi-lock me-1"></i>Private reply — only you can see this message.</small>'
+            : '<small class="text-muted d-block mt-2"><i class="bi bi-globe me-1"></i>Public reply — also shown on the service page.</small>';
+        slot.innerHTML = `<div class="mt-3 p-3 rounded municipality-reply-block" style="background:#f8fafc;border-left:4px solid var(--g);">
+            <div class="fw-bold small mb-1" style="color:var(--g);"><i class="bi bi-reply me-1"></i>Municipality reply</div>
+            <p class="mb-0 small">${escapeHtml(String(payload.office_response || ''))}</p>
+            ${visibility}
+        </div>`;
+        let alert = document.getElementById('feedback-reply-live-alert');
+        if (!alert) {
+            alert = document.createElement('div');
+            alert.id = 'feedback-reply-live-alert';
+            alert.className = 'alert alert-success alert-dismissible fade show mb-3';
+            alert.innerHTML = '<i class="bi bi-reply-fill me-2"></i><strong>New municipality reply</strong> — shown below.';
+            const page = document.querySelector('.detail-page');
+            const row = page?.querySelector('.row.g-3');
+            if (row) {
+                page.insertBefore(alert, row);
+            }
+        }
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    window.Echo.private('App.Models.User.' + citizenUserId)
+        .listen('.feedback.municipality-replied', injectMunicipalityReply);
+
+    window.Echo.private('service-request.' + requestId)
+        .listen('.feedback.municipality-replied', injectMunicipalityReply)
+        .listen('.service-request-status-changed', () => {
             setTimeout(() => location.reload(), 1500);
         });
 }
