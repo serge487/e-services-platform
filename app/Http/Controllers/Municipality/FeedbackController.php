@@ -29,7 +29,14 @@ class FeedbackController extends Controller
             $query->where('office_id', $officeFilter);
         }
 
-        $feedbacks = $query->paginate(15)->withQueryString();
+        $replyFilter = $request->query('reply', 'all');
+        if ($replyFilter === 'awaiting') {
+            $query->whereNull('office_response');
+        } elseif ($replyFilter === 'replied') {
+            $query->whereNotNull('office_response');
+        }
+
+        $feedbacks = $query->paginate(12)->withQueryString();
 
         $offices = Office::query()
             ->whereIn('id', $officeIds)
@@ -51,6 +58,7 @@ class FeedbackController extends Controller
             'feedbacks' => $feedbacks,
             'offices' => $offices,
             'officeFilter' => $officeFilter,
+            'replyFilter' => $replyFilter,
             'stats' => $stats,
             'canRespond' => Auth::user()->isMunicipalityAdmin(),
         ]);
@@ -76,7 +84,7 @@ class FeedbackController extends Controller
         FeedbackReplyNotifier::notifyCitizen($feedback);
 
         return redirect()
-            ->route('municipality.feedback', $request->only('office_id'))
+            ->route('municipality.feedback', $request->only(['office_id', 'reply']))
             ->with('success', 'Your reply has been saved and sent to the citizen.');
     }
 
