@@ -55,4 +55,9 @@ class Office extends Model
     {
         return $this->hasMany(Feedback::class);
     }
+
+    public function publicFeedbacks(): HasMany
+    {
+        return $this->feedbacks()->publicReview();
+    }
 }

@@ -18,7 +18,7 @@
     <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-start">
         <div>
             <h6 class="mb-0 fw-semibold"><i class="bi bi-bell me-2"></i>Your notifications</h6>
-            <p class="mb-0 mt-1 small text-muted">Click a notification to open the chat or service request.</p>
+            <p class="mb-0 mt-1 small text-muted">Click a notification to open chat, your request, or municipality feedback replies.</p>
         </div>
         @if($notifications->total() > 0)
             <button type="button" id="clear-all-btn" class="btn btn-sm btn-outline-danger" onclick="handleClearAll()">
@@ -42,6 +42,23 @@
                                 <div>
                                     <div class="fw-semibold">
                                         {{ $notification->data['sender_name'] ?? 'Message' }}
+                                        @if(!empty($notification->data['office_name']))
+                                            <span class="text-muted fw-normal">· {{ $notification->data['office_name'] }}</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-muted small mt-1">{{ $notification->data['preview'] ?? '' }}</div>
+                                </div>
+                                <span class="text-muted small text-nowrap">{{ $notification->created_at->diffForHumans() }}</span>
+                            </div>
+                        </a>
+                    @elseif(data_get($notification->data, 'type') === 'feedback_reply')
+                        <a href="{{ route('citizen.notifications.feedback-reply', $notification->id) }}"
+                           class="text-decoration-none text-dark">
+                            <div class="d-flex justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-semibold">
+                                        <i class="bi bi-reply me-1"></i>
+                                        {{ $notification->data['sender_name'] ?? 'Municipality reply' }}
                                         @if(!empty($notification->data['office_name']))
                                             <span class="text-muted fw-normal">· {{ $notification->data['office_name'] }}</span>
                                         @endif

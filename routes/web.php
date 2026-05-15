@@ -33,6 +33,7 @@ use App\Http\Controllers\Municipality\DashboardController;
 use App\Http\Controllers\Municipality\MunicipalitySessionController;
 use App\Http\Controllers\Municipality\NotificationController as MunicipalityNotificationController;
 use App\Http\Controllers\Municipality\EventAlertController;
+use App\Http\Controllers\Municipality\FeedbackController as MunicipalityFeedbackController;
 use App\Http\Controllers\Municipality\OfficeProfileController;
 use App\Http\Controllers\Municipality\ServiceController;
 use App\Http\Controllers\Municipality\ServiceRequestController;
@@ -41,6 +42,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortalController;
 use App\Http\Controllers\QrCodeScanController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Citizen\FeedbackController as CitizenFeedbackController;
 use App\Http\Controllers\Citizen\PaymentController;
 
 // --------------------------------------------------------------------------
@@ -48,6 +50,7 @@ use App\Http\Controllers\Citizen\PaymentController;
 // --------------------------------------------------------------------------
 Route::get('/', [PublicPortalController::class, 'index'])->name('portal');
 Route::get('/offices/{office}', [PublicPortalController::class, 'show'])->name('portal.office');
+Route::get('/offices/{office}/feedbacks', [PublicPortalController::class, 'feedbacks'])->name('portal.office.feedbacks');
 Route::get('/services/{service}/request', [PublicPortalController::class, 'requestService'])->name('portal.services.request');
 
 // --------------------------------------------------------------------------
@@ -150,7 +153,9 @@ Route::get('/service-requests/{serviceRequest}/payment', [PaymentController::cla
     ->name('service-requests.payment');
 Route::post('/service-requests/{serviceRequest}/payment', [PaymentController::class, 'store'])
     ->name('service-requests.payment.store');
-    
+        Route::post('/service-requests/{serviceRequest}/feedback', [CitizenFeedbackController::class, 'store'])
+            ->name('service-requests.feedback.store');
+
         Route::get('/appointments', [CitizenAppointmentController::class, 'index'])->name('appointments');
         Route::get('/appointments/live', [CitizenAppointmentController::class, 'live'])->name('appointments.live');
         Route::post('/appointments', [CitizenAppointmentController::class, 'store'])->name('appointments.store');
@@ -159,6 +164,7 @@ Route::post('/service-requests/{serviceRequest}/payment', [PaymentController::cl
         Route::get('/notifications', [CitizenNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [CitizenNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::get('/notifications/{id}/service-request', [CitizenNotificationController::class, 'openServiceRequest'])->name('notifications.service-request');
+        Route::get('/notifications/{id}/feedback-reply', [CitizenNotificationController::class, 'openFeedbackReply'])->name('notifications.feedback-reply');
         Route::delete('/notifications/{id}', [CitizenNotificationController::class, 'destroy'])->name('notifications.destroy');
 
         Route::delete('/notifications', [CitizenNotificationController::class, 'destroyAll'])->name('notifications.destroyAll');
@@ -243,7 +249,10 @@ Route::get('/event-alerts/{eventAlert}', [\App\Http\Controllers\Municipality\Eve
             ->name('appointments.destroy');
         Route::post('/appointments/{appointment}/remind', [MunicipalityAppointmentController::class, 'sendReminder'])
             ->name('appointments.remind');
-        Route::get('/feedback', fn () => view('municipality.feedback'))->name('feedback');
+        Route::get('/feedback', [MunicipalityFeedbackController::class, 'index'])->name('feedback');
+        Route::patch('/feedback/{feedback}/respond', [MunicipalityFeedbackController::class, 'respond'])
+            ->middleware('municipality.admin')
+            ->name('feedback.respond');
         Route::get('/notifications', [MunicipalityNotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/{id}/chat', [MunicipalityNotificationController::class, 'openChat'])->name('notifications.chat');
         Route::delete('/notifications/{id}', [MunicipalityNotificationController::class, 'destroy'])->name('notifications.destroy');

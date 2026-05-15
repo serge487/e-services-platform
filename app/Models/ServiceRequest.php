@@ -89,4 +89,14 @@ class ServiceRequest extends Model
         // Payment panel shows only after officer marks as taken (In Review)
         return $this->status === 'In Review' && $this->payment !== null;
     }
+
+    public function feedback(): HasOne
+    {
+        return $this->hasOne(Feedback::class);
+    }
+
+    public function canLeaveFeedback(): bool
+    {
+        return $this->isPaid() && ! $this->feedback()->exists();
+    }
 }

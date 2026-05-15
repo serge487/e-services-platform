@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Feedback;
 use App\Models\Office;
 use App\Models\Service;
 use Illuminate\Http\Request;
@@ -48,6 +49,8 @@ class PublicPortalController extends Controller
 
         // Load all offices with coordinates for the map
         $offices = Office::with(['municipality', 'categories.services'])
+            ->withAvg(['feedbacks as avg_rating' => fn ($q) => $q->publicReview()], 'rating')
+            ->withCount(['feedbacks as public_feedback_count' => fn ($q) => $q->publicReview()])
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
             ->orderBy('name')
@@ -61,6 +64,10 @@ class PublicPortalController extends Controller
             'latitude' => (float) $office->latitude,
             'longitude' => (float) $office->longitude,
             'url' => route('portal.office', $office, absolute: false),
+            'avg_rating' => $office->public_feedback_count > 0
+                ? round((float) $office->avg_rating, 1)
+                : null,
+            'feedback_count' => (int) $office->public_feedback_count,
         ]);
 
         $searchQuery = $request->query('search', '');
@@ -93,11 +100,46 @@ class PublicPortalController extends Controller
 
         $workingHours = $this->normalizeWorkingHours($office->working_hours, $days);
 
+        $publicReviewCount = $office->feedbacks()->publicReview()->count();
+        $feedbackStats = [
+            'count' => $publicReviewCount,
+            'average' => $publicReviewCount > 0
+                ? round((float) $office->feedbacks()->publicReview()->avg('rating'), 1)
+                : null,
+        ];
+
         return view('public.office-detail', compact(
             'office',
             'workingHours',
             'days',
+            'feedbackStats',
         ));
+    }
+
+    /**
+     * All public citizen reviews for an office (any logged-in or guest user).
+     */
+    public function feedbacks(Office $office)
+    {
+        $office->load('municipality');
+
+        $feedbacks = Feedback::query()
+            ->where('office_id', $office->id)
+            ->publicReview()
+            ->with(['citizen', 'service'])
+            ->latest()
+            ->paginate(12);
+
+        $statsQuery = Feedback::query()
+            ->where('office_id', $office->id)
+            ->publicReview();
+
+        $stats = [
+            'count' => (clone $statsQuery)->count(),
+            'average' => round((float) (clone $statsQuery)->avg('rating'), 1),
+        ];
+
+        return view('public.office-feedbacks', compact('office', 'feedbacks', 'stats'));
     }
 
     public function requestService(Request $request, Service $service)
