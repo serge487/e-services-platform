@@ -2,36 +2,28 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Municipality;
+use App\Filament\Support\AdminDashboardFilters;
 use App\Models\Office;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Database\Eloquent\Builder;
 
 class RequestsPerOfficeChart extends ChartWidget
 {
+    use InteractsWithPageFilters;
+
     protected static ?string $heading = 'Requests per Office';
     protected static ?int $sort = 2;
     protected static ?string $maxHeight = '300px';
 
-    // Holds the selected municipality ID
-    public ?string $municipalityId = null;
-
-    // Dropdown filter shown on the widget
-    protected function getFilters(): ?array
-    {
-        $municipalities = Municipality::orderBy('name')->pluck('name', 'id')->toArray();
-
-        return ['' => 'All Municipalities'] + $municipalities;
-    }
-
     protected function getData(): array
     {
+        $officeIds = AdminDashboardFilters::officeIds($this->filters);
+
         $offices = Office::withCount(['services as requests_count' => function ($query) {
-                $query->join('service_requests', 'services.id', '=', 'service_requests.service_id');
-            }])
-            ->when($this->filter, function (Builder $query) {
-                $query->where('municipality_id', $this->filter);
-            })
+            $query->join('service_requests', 'services.id', '=', 'service_requests.service_id');
+        }])
+            ->when($officeIds !== null, fn (Builder $query) => $query->whereIn('id', $officeIds))
             ->get();
 
         return [

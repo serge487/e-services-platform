@@ -89,6 +89,15 @@ class LebaneseMunicipalityServicesSeeder extends Seeder
                             'required_documents' => ['Applicant ID copy', 'Location map', 'Work description and dates', 'Public safety plan if required'],
                         ],
                     ],
+                    'Payment testing' => [
+                        [
+                            'name' => 'Whish Payment Test (0.10 USD)',
+                            'description' => 'Pay $0.10 via Whish to test the payment flow end to end.',
+                            'price' => 0.10,
+                            'duration_days' => 1,
+                            'required_documents' => ['Lebanese ID or passport copy'],
+                        ],
+                    ],
                 ],
             ],
             'Municipality of Jounieh' => [

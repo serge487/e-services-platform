@@ -14,6 +14,8 @@ class ServiceRequest extends Model
     /** @use HasFactory<ServiceRequestFactory> */
     use HasFactory;
 
+    public const STATUS_COMPLETED = 'Completed';
+
     protected $fillable = [
         'citizen_id', 'service_id', 'status',
         'qr_code_token', 'office_notes', 'accepted_by', 'accepted_at',
@@ -93,6 +95,16 @@ class ServiceRequest extends Model
     public function feedback(): HasOne
     {
         return $this->hasOne(Feedback::class);
+    }
+
+    public function isCompleted(): bool
+    {
+        return $this->status === self::STATUS_COMPLETED;
+    }
+
+    public function countsTowardRevenue(): bool
+    {
+        return $this->isCompleted() && $this->payment !== null;
     }
 
     public function canLeaveFeedback(): bool
