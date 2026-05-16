@@ -76,9 +76,14 @@
                                         @endforeach
                                     </select>
                                 </form>
-                                <form method="POST" action="{{ route('municipality.appointments.remind', $appointment, absolute: false) }}">
+                                <form
+                                    method="POST"
+                                    action="{{ route('municipality.appointments.remind', $appointment, absolute: false) }}"
+                                    data-remind-form
+                                    data-appointment-id="{{ $appointment->id }}"
+                                >
                                     @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-remind-button>
                                         <i class="bi bi-bell me-1"></i>Remind
                                     </button>
                                 </form>

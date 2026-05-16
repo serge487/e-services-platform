@@ -8,10 +8,13 @@ use App\Models\Appointment;
 use App\Models\Office;
 use App\Models\OfficerTimeSlot;
 use App\Models\User;
+use App\Notifications\AppointmentReminder;
+use App\Notifications\AppointmentStatusUpdated;
+use App\Services\NotificationRealtimeBroadcaster;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 
 class AppointmentController extends Controller
 {
@@ -162,6 +165,8 @@ class AppointmentController extends Controller
             'status' => ['required', 'string', 'in:'.implode(',', self::MANAGEABLE_STATUSES)],
         ]);
 
+        $previousStatus = $appointment->status;
+
         $appointment->update(['status' => $validated['status']]);
 
         if ($validated['status'] === 'cancelled') {
@@ -169,6 +174,29 @@ class AppointmentController extends Controller
         }
 
         $this->broadcastAppointmentChangedForAppointment($appointment);
+
+        if ($previousStatus !== $validated['status']) {
+            try {
+                $this->notifyCitizenAboutAppointment(
+                    $appointment,
+                    new AppointmentStatusUpdated($appointment, $previousStatus, $validated['status'])
+                );
+            } catch (\Throwable $exception) {
+                logger()->error('Appointment status notification failed', [
+                    'appointment_id' => $appointment->id,
+                    'previous_status' => $previousStatus,
+                    'new_status' => $validated['status'],
+                    'error' => $exception->getMessage(),
+                ]);
+
+                return back()->with(
+                    'warning',
+                    'Status updated, but the citizen could not be notified by email.'
+                );
+            }
+
+            return back()->with('success', 'Appointment status updated and citizen notified by email.');
+        }
 
         return back()->with('success', 'Appointment status updated.');
     }
@@ -192,33 +220,80 @@ class AppointmentController extends Controller
         return back()->with('success', 'Appointment deleted successfully.');
     }
 
-    public function sendReminder(Appointment $appointment)
+    public function sendReminder(Request $request, Appointment $appointment)
     {
         $this->authorizeAppointmentAccess($appointment);
 
         if (! in_array($appointment->status, ['scheduled', 'confirmed'], true)) {
-            return back()->with('warning', 'Reminder can only be sent for active appointments.');
+            $message = 'Reminder can only be sent for scheduled or confirmed appointments.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 422);
+            }
+
+            return back()->with('warning', $message);
         }
 
         $appointment->loadMissing(['citizen', 'officerTimeSlot.office', 'officerTimeSlot.officer']);
-
         $citizen = $appointment->citizen;
-        $slot = $appointment->officerTimeSlot;
 
-        Mail::raw(
-            "Reminder: you have an appointment on {$slot->slot_date} from {$slot->start_time} to {$slot->end_time} at {$slot->office->name}.",
-            function ($message) use ($citizen): void {
-                $message->to($citizen->email)->subject('Appointment Reminder');
+        try {
+            $this->notifyCitizenAboutAppointment($appointment, new AppointmentReminder($appointment));
+        } catch (\Throwable $exception) {
+            logger()->error('Appointment reminder failed', [
+                'appointment_id' => $appointment->id,
+                'citizen_id' => $citizen->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            $message = $this->mailFailureMessage($exception);
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 500);
             }
-        );
 
-        // SMS integration is not yet connected, so we keep a clear audit trace in logs.
-        logger()->info('SMS reminder simulated', [
-            'appointment_id' => $appointment->id,
-            'citizen_phone' => $citizen->phone_number,
-        ]);
+            return back()->with('warning', $message);
+        }
 
-        return back()->with('success', 'Email reminder sent. SMS reminder logged for integration.');
+        $message = 'Reminder email sent to '.$citizen->email.'.';
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => $message]);
+        }
+
+        return back()->with('success', $message);
+    }
+
+    private function notifyCitizenAboutAppointment(Appointment $appointment, Notification $notification): void
+    {
+        $appointment->loadMissing(['citizen', 'officerTimeSlot.office', 'officerTimeSlot.officer']);
+        $citizen = $appointment->citizen;
+
+        if (! $citizen?->email) {
+            throw new \RuntimeException('Citizen does not have an email address.');
+        }
+
+        $citizen->notify($notification);
+        NotificationRealtimeBroadcaster::broadcastLatest($citizen);
+    }
+
+    private function mailFailureMessage(\Throwable $exception): string
+    {
+        $error = $exception->getMessage();
+
+        if (str_contains($error, 'does not have an email')) {
+            return 'This citizen has no email address on file.';
+        }
+
+        if (str_contains($error, 'expired or revoked') || str_contains($error, 'invalid_grant')) {
+            return 'Gmail token expired. Run `php artisan gmail:authorize`, update GMAIL_REFRESH_TOKEN, then `php artisan config:clear`.';
+        }
+
+        if (str_contains($error, 'not configured')) {
+            return 'Gmail OAuth is not configured. Set GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, and GMAIL_REFRESH_TOKEN in .env.';
+        }
+
+        return 'Could not send email. Check storage/logs/laravel.log for details.';
     }
 
     /**
