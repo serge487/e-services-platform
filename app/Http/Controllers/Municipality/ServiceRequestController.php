@@ -9,6 +9,7 @@ use App\Models\ServiceRequest;
 use App\Models\Payment;
 use App\Notifications\ServiceRequestStatusUpdated;
 use App\Services\NotificationRealtimeBroadcaster;
+use App\Services\PaymentRevenueBroadcaster;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -98,6 +99,10 @@ class ServiceRequestController extends Controller
             'status' => $validated['status'],
             'office_notes' => $validated['office_notes'] ?? $serviceRequest->office_notes,
         ]);
+
+        if ($validated['status'] === ServiceRequest::STATUS_COMPLETED) {
+            PaymentRevenueBroadcaster::broadcastForServiceRequest($serviceRequest);
+        }
 
         ServiceRequestStatusChanged::dispatch(
             $serviceRequest,
@@ -277,10 +282,7 @@ class ServiceRequestController extends Controller
             )
         );
 
-        try {
-            app(NotificationRealtimeBroadcaster::class)
-                ->broadcastLatest($serviceRequest->citizen);
-        } catch (\Exception $e) {}
+        NotificationRealtimeBroadcaster::broadcastLatest($serviceRequest->citizen);
 
         return back()->with('success', 'Payment confirmed. Request automatically approved.');
     }

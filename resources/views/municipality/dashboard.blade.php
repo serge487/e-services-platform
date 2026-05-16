@@ -55,6 +55,19 @@
     <div class="col-sm-6 col-xl-3">
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                    <i class="bi bi-cash-stack fs-4 text-success"></i>
+                </div>
+                <div>
+                    <div class="text-muted small">Total Revenue</div>
+                    <div class="fw-bold fs-4" id="stat-total-revenue">{{ $stats['total_revenue'] }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center gap-3">
                 <div class="rounded-circle bg-info bg-opacity-10 p-3">
                     <i class="bi bi-chat-dots fs-4 text-info"></i>
                 </div>
@@ -166,6 +179,7 @@
                     if (el('stat-total-requests')) el('stat-total-requests').textContent = data.stats.total_requests;
                     if (el('stat-pending')) el('stat-pending').textContent = data.stats.pending;
                     if (el('stat-appointments-today')) el('stat-appointments-today').textContent = data.stats.appointments_today;
+                    if (el('stat-total-revenue')) el('stat-total-revenue').textContent = data.stats.total_revenue;
                     if (el('stat-unread-messages')) el('stat-unread-messages').textContent = data.stats.unread_messages;
                 }
 
@@ -196,6 +210,16 @@
             window.__municipalityDashboardEchoBound = true;
             window.Echo.private(`App.Models.User.${userId}`)
                 .listen('.appointment.changed', () => {
+                    refresh();
+                })
+                .listen('.revenue.updated', (payload) => {
+                    const formatted = payload?.formatted_total;
+                    if (formatted) {
+                        const el = document.getElementById('stat-total-revenue');
+                        if (el) {
+                            el.textContent = formatted;
+                        }
+                    }
                     refresh();
                 })
                 .error((status) => {

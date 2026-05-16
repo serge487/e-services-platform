@@ -2,25 +2,27 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Payment;
+use App\Filament\Support\AdminDashboardFilters;
+use App\Services\RevenueService;
 use Filament\Widgets\ChartWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Carbon;
 
 class RevenueChart extends ChartWidget
 {
+    use InteractsWithPageFilters;
+
     protected static ?string $heading = 'Monthly Revenue';
     protected static ?int $sort = 3;
     protected static ?string $maxHeight = '300px';
 
+    protected $listeners = ['revenue-updated' => '$refresh'];
+
     protected function getData(): array
     {
+        $officeIds = AdminDashboardFilters::officeIds($this->filters);
         $months = collect(range(5, 0))->map(fn ($i) => Carbon::now()->subMonths($i));
-
-        $revenue = $months->map(fn ($month) => Payment::where('status', 'completed')
-            ->whereYear('created_at', $month->year)
-            ->whereMonth('created_at', $month->month)
-            ->sum('amount')
-        );
+        $revenue = collect(RevenueService::monthlyTotals(5, $officeIds));
 
         return [
             'datasets' => [

@@ -2,21 +2,31 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Support\AdminDashboardFilters;
 use App\Models\ServiceRequest;
 use App\Models\User;
-use App\Models\Office;
-use App\Models\Payment;
+use App\Services\RevenueService;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class StatsOverview extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
+    protected $listeners = ['revenue-updated' => '$refresh'];
+
     protected function getStats(): array
     {
-        $totalRevenue = Payment::where('status', 'completed')->sum('amount');
-        $totalRequests = ServiceRequest::count();
-        $pendingRequests = ServiceRequest::where('status', 'Pending')->count();
-        $totalCitizens = User::where('role', 'citizen')->count();
+        $officeIds = AdminDashboardFilters::officeIds($this->filters);
+
+        $requestsQuery = ServiceRequest::query();
+        if ($officeIds !== null) {
+            $requestsQuery->whereHas('service', fn ($q) => $q->whereIn('office_id', $officeIds));
+        }
+
+        $totalRequests = (clone $requestsQuery)->count();
+        $pendingRequests = (clone $requestsQuery)->where('status', 'Pending')->count();
 
         return [
             Stat::make('Total Requests', $totalRequests)
@@ -29,12 +39,11 @@ class StatsOverview extends BaseWidget
                 ->descriptionIcon('heroicon-o-clock')
                 ->color('warning'),
 
-            Stat::make('Total Revenue', '$' . number_format($totalRevenue, 2))
-                ->description('From completed payments')
+            Stat::make('Total Revenue', RevenueService::formattedTotal($officeIds))
                 ->descriptionIcon('heroicon-o-banknotes')
                 ->color('success'),
 
-            Stat::make('Total Citizens', $totalCitizens)
+            Stat::make('Total Citizens', User::where('role', 'citizen')->count())
                 ->description('Registered citizens')
                 ->descriptionIcon('heroicon-o-users')
                 ->color('primary'),

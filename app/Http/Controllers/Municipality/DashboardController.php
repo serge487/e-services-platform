@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Municipality;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\ServiceRequest;
-use Illuminate\Http\Request;
+use App\Services\RevenueService;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -54,12 +54,14 @@ class DashboardController extends Controller
             ->count();
 
         $unreadMessages = Auth::user()->unreadNotifications()->count();
+        $totalRevenue = RevenueService::formattedTotal($officeIds);
 
         return [
             'total_requests' => $totalRequests,
             'pending' => $pendingRequests,
             'appointments_today' => $appointmentsToday,
             'unread_messages' => $unreadMessages,
+            'total_revenue' => $totalRevenue,
         ];
     }
 
