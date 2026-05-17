@@ -51,6 +51,10 @@ class NotificationRealtimeBroadcaster
             return route('citizen.notifications.feedback-reply', ['id' => $notification->id], absolute: false);
         }
 
+        if (in_array(data_get($data, 'type'), ['appointment_reminder', 'appointment_status'], true) && $user->role === 'citizen') {
+            return route('citizen.appointments', absolute: false);
+        }
+
         $serviceRequestId = data_get($data, 'service_request_id');
         if ($serviceRequestId !== null && $serviceRequestId !== '') {
             if ($user->role === 'citizen') {

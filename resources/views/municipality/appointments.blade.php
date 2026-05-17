@@ -17,6 +17,8 @@
     </div>
 @endif
 
+<div id="appointments-flash-container"></div>
+
 @if($errors->any())
     <div class="alert alert-danger">
         <i class="bi bi-x-circle me-2"></i>{{ $errors->first() }}
@@ -141,9 +143,26 @@
         let isLoading = false;
         let debounceId = null;
         let isStatusInteracting = false;
+        let isRemindSending = false;
+        const flashContainer = document.getElementById('appointments-flash-container');
+
+        const showFlash = (type, message) => {
+            if (!flashContainer || !message) {
+                return;
+            }
+
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-warning';
+            const iconClass = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle';
+
+            flashContainer.innerHTML =
+                '<div class="alert ' + alertClass + ' alert-dismissible fade show">' +
+                    '<i class="bi ' + iconClass + ' me-2"></i>' + message +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                '</div>';
+        };
 
         const refreshData = async () => {
-            if (isLoading || isStatusInteracting) {
+            if (isLoading || isStatusInteracting || isRemindSending) {
                 return;
             }
 
@@ -265,6 +284,62 @@
                 setTimeout(() => {
                     isStatusInteracting = false;
                 }, 150);
+            }
+        });
+
+        bookingsContainer.addEventListener('submit', async (event) => {
+            const form = event.target.closest('[data-remind-form]');
+            if (!form) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const button = form.querySelector('[data-remind-button]');
+            if (button?.disabled) {
+                return;
+            }
+
+            const originalHtml = button ? button.innerHTML : '';
+            const csrfToken = form.querySelector('input[name="_token"]')?.value
+                || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || '';
+
+            isRemindSending = true;
+
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Sending...';
+            }
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: new FormData(form),
+                });
+
+                const data = await response.json().catch(() => ({}));
+                const message = data.message || (response.ok
+                    ? 'Reminder email sent.'
+                    : 'Could not send reminder email.');
+
+                showFlash(data.success ? 'success' : 'warning', message);
+            } catch (error) {
+                console.warn('Appointment reminder failed:', error);
+                showFlash('warning', 'Could not send reminder email. Please try again.');
+            } finally {
+                isRemindSending = false;
+
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalHtml;
+                }
             }
         });
 
