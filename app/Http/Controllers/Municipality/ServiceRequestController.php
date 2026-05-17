@@ -173,34 +173,51 @@ class ServiceRequestController extends Controller
         return back()->with('success', 'Request marked as taken and moved to "In Review".');
     }
 
-    public function uploadDocument(Request $request, ServiceRequest $serviceRequest)
-    {
-        $this->authorizeRequestAccess($serviceRequest);
+   public function uploadDocument(Request $request, ServiceRequest $serviceRequest)
+{
+    $this->authorizeRequestAccess($serviceRequest);
 
-        $request->validate([
-            'response_document' => [
-                'required',
-                'file',
-                'mimes:pdf',
-                'max:10240',
-            ],
+    $request->validate([
+        'response_document' => [
+            'required',
+            'file',
+            'mimes:pdf',
+            'max:10240',
+        ],
+    ]);
+
+    $uploadedFile = $request->file('response_document');
+
+    $filePath = $uploadedFile->store(
+        'official-responses/' . $serviceRequest->id,
+        'private'
+    );
+
+    $doc = RequestDocument::create([
+        'service_request_id' => $serviceRequest->id,
+        'file_path' => $filePath,
+        'type' => 'official_response',
+    ]);
+
+    // Broadcast to citizen in real time
+    try {
+        $downloadUrl = route('citizen.service-requests.download', [
+            $serviceRequest->id,
+            $doc->id,
         ]);
 
-        $uploadedFile = $request->file('response_document');
-
-        $filePath = $uploadedFile->store(
-            'official-responses/' . $serviceRequest->id,
-            'private'
-        );
-
-        RequestDocument::create([
-            'service_request_id' => $serviceRequest->id,
-            'file_path' => $filePath,
-            'type' => 'official_response',
-        ]);
-
-        return back()->with('success', 'Official response document uploaded successfully.');
+        broadcast(new \App\Events\OfficialDocumentUploaded(
+            $serviceRequest->citizen_id,
+            $serviceRequest->id,
+            basename($filePath),
+            $downloadUrl,
+        ))->toOthers();
+    } catch (\Exception $e) {
+        // Non-fatal if Reverb is down
     }
+
+    return back()->with('success', 'Official response document uploaded successfully.');
+}
 
     public function deleteDocument(ServiceRequest $serviceRequest, RequestDocument $document)
     {

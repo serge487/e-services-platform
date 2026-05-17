@@ -393,20 +393,26 @@
                     <div class="d-card-body">
                         @if($pay->isPaid())
                             <div class="pay-confirmed">
-                                <i class="bi bi-check-circle-fill text-success fs-4 flex-shrink-0"></i>
-                                <div class="flex-grow-1">
-                                    <div class="fw-bold" style="color:var(--g);">Payment Confirmed</div>
-                                    <div class="small text-muted">
-                                        {{ $pay->methodLabel() }}
-                                        @if($pay->paid_at)
-                                            · {{ $pay->paid_at->format('M d, Y \a\t g:i A') }}
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="fw-bold fs-5" style="color:var(--g);">
-                                    ${{ number_format($pay->amount, 2) }}
-                                </div>
-                            </div>
+    <i class="bi bi-check-circle-fill text-success fs-4 flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <div class="fw-bold" style="color:var(--g);">Payment Confirmed</div>
+        <div class="small text-muted">
+            {{ $pay->methodLabel() }}
+            @if($pay->paid_at)
+                · {{ $pay->paid_at->format('M d, Y \a\t g:i A') }}
+            @endif
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <div class="fw-bold fs-5" style="color:var(--g);">
+            ${{ number_format($pay->amount, 2) }}
+        </div>
+        <a href="{{ route('citizen.service-requests.invoice', $serviceRequest, absolute: false) }}"
+           class="btn-dl" title="Download Invoice">
+            <i class="bi bi-receipt me-1"></i>Invoice
+        </a>
+    </div>
+</div>
 
                         @elseif($serviceRequest->status === 'In Review')
                             <div class="pay-required">
@@ -678,9 +684,68 @@
                 </div>
             </div>
 
-        </div>
-    </div>
-</div>
+       {{-- Official Response Documents --}}
+            @php $officialDocs = $serviceRequest->requestDocuments->where('type', 'official_response'); @endphp
+            <div class="d-card" id="official-docs-card">
+                <div class="d-card-head">
+                    <i class="bi bi-cloud-download"></i> Response Documents
+                </div>
+                <div class="d-card-body" id="official-docs-list">
+                    @forelse($officialDocs as $doc)
+                        <div class="doc-row">
+                            <div class="d-flex align-items-center gap-2 flex-grow-1">
+                                <i class="bi bi-file-earmark-pdf text-danger fs-5 flex-shrink-0"></i>
+                                <div>
+                                    <div class="field-val" style="font-size:0.82rem;">{{ basename($doc->file_path) }}</div>
+                                    <div class="small text-muted">Received {{ $doc->created_at->diffForHumans() }}</div>
+                                </div>
+                            </div>
+                            <a href="{{ route('citizen.service-requests.download', [$serviceRequest, $doc], absolute: false) }}" class="btn-dl">
+                                <i class="bi bi-download me-1"></i>Download
+                            </a>
+                        </div>
+                    @empty
+                        <p class="text-muted small mb-0">
+                            <i class="bi bi-hourglass me-1"></i>No documents yet — the office will upload them here.
+                        </p>
+                    @endforelse
+                </div>
+            </div>
+
+            {{-- Invoice --}}
+            @if($serviceRequest->payment && $serviceRequest->payment->isPaid())
+                <div class="d-card">
+                    <div class="d-card-head">
+                        <i class="bi bi-receipt"></i> Invoice
+                    </div>
+                    <div class="d-card-body">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <div>
+                                <div class="field-val" style="color:var(--g);">
+                                    ${{ number_format($serviceRequest->payment->amount, 2) }} {{ $serviceRequest->payment->currency }}
+                                </div>
+                                <div class="small text-muted">
+                                    {{ $serviceRequest->payment->methodLabel() }}
+                                    @if($serviceRequest->payment->paid_at)
+                                        · {{ $serviceRequest->payment->paid_at->format('M d, Y') }}
+                                    @endif
+                                </div>
+                            </div>
+                            <span class="badge" style="background:var(--g-soft);color:var(--g);border:1px solid var(--g-border);font-size:0.7rem;">PAID</span>
+                        </div>
+                        <a href="{{ route('citizen.service-requests.invoice', $serviceRequest, absolute: false) }}"
+                           class="btn-dl d-flex align-items-center justify-content-center gap-1 w-100"
+                           style="padding:0.45rem;">
+                            <i class="bi bi-download"></i> Download Invoice (PDF)
+                        </a>
+                    </div>
+                </div>
+            @endif
+
+        </div> {{-- closes col-lg-4 --}}
+    </div>     {{-- closes row --}}
+</div>         {{-- closes detail-page --}}
+
 @endsection
 
 @push('scripts')
@@ -741,11 +806,62 @@ if (typeof window.Echo !== 'undefined') {
     window.Echo.private('App.Models.User.' + citizenUserId)
         .listen('.feedback.municipality-replied', injectMunicipalityReply);
 
-    window.Echo.private('service-request.' + requestId)
-        .listen('.feedback.municipality-replied', injectMunicipalityReply)
-        .listen('.service-request-status-changed', () => {
-            setTimeout(() => location.reload(), 1500);
-        });
+   window.Echo.private('service-request.' + requestId)
+    .listen('.feedback.municipality-replied', injectMunicipalityReply)
+    .listen('.service-request-status-changed', () => {
+        setTimeout(() => location.reload(), 1500);
+    })
+    .listen('.document.uploaded', (payload) => {
+        injectOfficialDocument(payload);
+    });
+
+    function injectOfficialDocument(payload) {
+    // Show the official docs card if it doesn't exist yet
+    let card = document.getElementById('official-docs-card');
+    if (!card) {
+        const mainCol = document.querySelector('.col-lg-8');
+        card = document.createElement('div');
+        card.id = 'official-docs-card';
+        card.className = 'd-card';
+        card.innerHTML = `
+            <div class="d-card-head">
+                <i class="bi bi-cloud-download"></i> Official Response Documents
+            </div>
+            <div class="d-card-body" id="official-docs-list"></div>`;
+        mainCol.appendChild(card);
+    }
+
+    const list = document.getElementById('official-docs-list');
+    const filename = payload.filename || 'Response Document';
+    const downloadUrl = payload.download_url;
+
+    const row = document.createElement('div');
+    row.className = 'doc-row';
+    row.innerHTML = `
+        <div class="d-flex align-items-center gap-2 flex-grow-1">
+            <i class="bi bi-file-earmark-pdf text-danger fs-5 flex-shrink-0"></i>
+            <div>
+                <div class="field-val">${escapeHtml(filename)}</div>
+                <div class="small text-muted">Just received</div>
+            </div>
+        </div>
+        <a href="${downloadUrl}" class="btn-dl">
+            <i class="bi bi-download me-1"></i>Download
+        </a>`;
+    list.appendChild(row);
+
+    // Flash a top alert
+    const page = document.querySelector('.detail-page');
+    const existingAlert = document.getElementById('doc-live-alert');
+    if (!existingAlert) {
+        const alert = document.createElement('div');
+        alert.id = 'doc-live-alert';
+        alert.className = 'alert alert-success alert-dismissible fade show mb-3';
+        alert.innerHTML = `<i class="bi bi-cloud-download me-2"></i><strong>New document received</strong> from the office — available below. <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        const row = page?.querySelector('.row.g-3');
+        if (row) page.insertBefore(alert, row);
+    }
+}
 }
 @endif
 </script>
