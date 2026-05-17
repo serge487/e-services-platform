@@ -262,10 +262,7 @@
 
                 <div class="nav-label">More</div>
 
-                <a href="{{ route('citizen.history', absolute: false) }}"
-                   class="{{ request()->routeIs('citizen.history') ? 'active' : '' }}">
-                    <i class="bi bi-clock-history"></i> History
-                </a>
+                
 
                 <a href="{{ route('citizen.chat', absolute: false) }}"
                    class="{{ request()->routeIs('citizen.chat') ? 'active' : '' }}">

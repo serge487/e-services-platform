@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-
+use Barryvdh\DomPDF\Facade\Pdf;
 class ServiceRequestController extends Controller
 {
     /**
@@ -182,4 +182,20 @@ class ServiceRequestController extends Controller
             'documents_count' => $serviceRequest->requestDocuments->count(),
         ]);
     }
+    public function downloadInvoice(ServiceRequest $serviceRequest)
+{
+    if ($serviceRequest->citizen_id !== Auth::id()) {
+        abort(403);
+    }
+
+    $serviceRequest->load(['service.office', 'payment', 'citizen']);
+
+    if (!$serviceRequest->payment || !$serviceRequest->payment->isPaid()) {
+        abort(403, 'Invoice only available after payment is confirmed.');
+    }
+
+    $pdf = Pdf::loadView('citizen.invoice', compact('serviceRequest'));
+
+    return $pdf->download('invoice-request-' . $serviceRequest->id . '.pdf');
+}
 }

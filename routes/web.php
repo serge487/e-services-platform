@@ -146,6 +146,7 @@ Route::middleware(['auth'])->prefix('citizen')->name('citizen.')->group(function
         Route::post('/service-requests', [CitizenServiceRequestController::class, 'store'])->name('service-requests.store');
         Route::get('/service-requests/{serviceRequest}', [CitizenServiceRequestController::class, 'show'])->name('service-requests.show');
         Route::get('/service-requests/{serviceRequest}/poll', [CitizenServiceRequestController::class, 'pollStatus'])->name('service-requests.poll');
+        Route::get('/service-requests/{serviceRequest}/invoice', [CitizenServiceRequestController::class, 'downloadInvoice'])->name('service-requests.invoice');
         Route::get('/service-requests/{serviceRequest}/documents/{document}/download', [CitizenServiceRequestController::class, 'downloadDocument'])->name('service-requests.download');
 
          // Payment routes
