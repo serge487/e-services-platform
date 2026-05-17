@@ -1,0 +1,182 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Feedback;
+use App\Models\Office;
+use App\Models\Service;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+
+class PublicPortalController extends Controller
+{
+    /**
+     * Public portal home — shows map + office list.
+     * Non-citizen authenticated users are redirected to their area.
+     * Citizens stay on the portal with their personal stats unlocked.
+     */
+    public function index(Request $request)
+    {
+        if (Auth::check()) {
+            $user = Auth::user();
+
+            // Admin → Filament panel
+            if ($user->role === 'admin') {
+                return redirect('/admin');
+            }
+
+            // Municipality staff → municipality dashboard
+            if (in_array($user->role, ['municipality', 'office_staff'])) {
+                return redirect()->route('municipality.dashboard');
+            }
+
+            // Citizen not yet identity-verified → verification flow
+            if (
+                $user->role === 'citizen'
+                && ! $user->identity_verified_at
+                && ! config('citizen.skip_identity_verification_gate')
+            ) {
+                return redirect()->route('citizen.identity-verification.show');
+            }
+
+            // Verified citizens fall through and see the portal with stats
+        }
+
+        if (! Schema::hasTable('offices')) {
+            return redirect()->route('citizen.login');
+        }
+
+        // Load all offices with coordinates for the map
+        $offices = Office::with(['municipality', 'categories.services'])
+            ->withAvg(['feedbacks as avg_rating' => fn ($q) => $q->publicReview()], 'rating')
+            ->withCount(['feedbacks as public_feedback_count' => fn ($q) => $q->publicReview()])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->orderBy('name')
+            ->get();
+
+        // JSON-safe data for Leaflet markers
+        $officesForMap = $offices->map(fn ($office) => [
+            'id' => $office->id,
+            'name' => $office->name,
+            'address' => $office->address,
+            'latitude' => (float) $office->latitude,
+            'longitude' => (float) $office->longitude,
+            'url' => route('portal.office', $office, absolute: false),
+            'avg_rating' => $office->public_feedback_count > 0
+                ? round((float) $office->avg_rating, 1)
+                : null,
+            'feedback_count' => (int) $office->public_feedback_count,
+        ]);
+
+        $searchQuery = $request->query('search', '');
+
+        // Filter list by search — map always shows all pins
+        $filteredOffices = $searchQuery
+            ? $offices->filter(fn ($office) => str_contains(strtolower($office->name), strtolower($searchQuery)) ||
+                str_contains(strtolower($office->address), strtolower($searchQuery)) ||
+                str_contains(strtolower($office->municipality->name ?? ''), strtolower($searchQuery))
+            )->values()
+            : $offices;
+
+        return view('public.portal', compact(
+            'offices',
+            'filteredOffices',
+            'officesForMap',
+            'searchQuery',
+        ));
+    }
+
+    /**
+     * Public office detail page — shows office info + services.
+     * No authentication required. Citizens see "Request" button, guests see "Login to Request".
+     */
+    public function show(Office $office)
+    {
+        $office->load(['municipality', 'categories.services']);
+
+        $days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+        $workingHours = $this->normalizeWorkingHours($office->working_hours, $days);
+
+        $publicReviewCount = $office->feedbacks()->publicReview()->count();
+        $feedbackStats = [
+            'count' => $publicReviewCount,
+            'average' => $publicReviewCount > 0
+                ? round((float) $office->feedbacks()->publicReview()->avg('rating'), 1)
+                : null,
+        ];
+
+        return view('public.office-detail', compact(
+            'office',
+            'workingHours',
+            'days',
+            'feedbackStats',
+        ));
+    }
+
+    /**
+     * All public citizen reviews for an office (any logged-in or guest user).
+     */
+    public function feedbacks(Office $office)
+    {
+        $office->load('municipality');
+
+        $feedbacks = Feedback::query()
+            ->where('office_id', $office->id)
+            ->publicReview()
+            ->with(['citizen', 'service'])
+            ->latest()
+            ->paginate(12);
+
+        $statsQuery = Feedback::query()
+            ->where('office_id', $office->id)
+            ->publicReview();
+
+        $stats = [
+            'count' => (clone $statsQuery)->count(),
+            'average' => round((float) (clone $statsQuery)->avg('rating'), 1),
+        ];
+
+        return view('public.office-feedbacks', compact('office', 'feedbacks', 'stats'));
+    }
+
+    public function requestService(Request $request, Service $service)
+    {
+        $target = route('citizen.services.show', $service, absolute: false);
+        $request->session()->put('url.intended', url($target));
+
+        if (! Auth::check()) {
+            return redirect()->route('citizen.login');
+        }
+
+        if (Auth::user()->role !== 'citizen') {
+            abort(403);
+        }
+
+        return redirect($target);
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Normalize working hours — ensures all 7 days are present with defaults.
+     */
+    private function normalizeWorkingHours(?array $workingHours, array $days): array
+    {
+        $normalized = [];
+
+        foreach ($days as $day) {
+            $normalized[$day] = [
+                'is_open' => $workingHours[$day]['is_open'] ?? false,
+                'open_time' => $workingHours[$day]['open_time'] ?? '08:00',
+                'close_time' => $workingHours[$day]['close_time'] ?? '16:00',
+            ];
+        }
+
+        return $normalized;
+    }
+}
