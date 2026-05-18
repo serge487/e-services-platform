@@ -38,17 +38,14 @@ class QrCodeScanController extends Controller
             }
         }
 
+        if (! $request->expectsJson()) {
+            return view('public.qr-tracking', [
+                'tracking' => $this->trackingPayload($serviceRequest),
+            ]);
+        }
+
         // Return JSON for API/mobile usage
-        return response()->json([
-            'id' => $serviceRequest->id,
-            'service' => $serviceRequest->service->name,
-            'office' => $serviceRequest->service->office->name,
-            'status' => $serviceRequest->citizenDisplayStatus(),
-            'citizen' => $serviceRequest->citizen->name,
-            'created_at' => $serviceRequest->created_at,
-            'updated_at' => $serviceRequest->updated_at,
-            'qr_token' => $serviceRequest->qr_code_token,
-        ]);
+        return response()->json($this->trackingPayload($serviceRequest));
     }
 
     /**
@@ -60,17 +57,23 @@ class QrCodeScanController extends Controller
             ->with(['citizen', 'service.office', 'service.category'])
             ->firstOrFail();
 
-        return response()->json([
+        return response()->json($this->trackingPayload($serviceRequest) + [
+            'email' => $serviceRequest->citizen->email,
+            'phone' => $serviceRequest->citizen->phone_number,
+        ]);
+    }
+
+    private function trackingPayload(ServiceRequest $serviceRequest): array
+    {
+        return [
             'id' => $serviceRequest->id,
             'service' => $serviceRequest->service->name,
             'office' => $serviceRequest->service->office->name,
             'status' => $serviceRequest->citizenDisplayStatus(),
             'citizen' => $serviceRequest->citizen->name,
-            'email' => $serviceRequest->citizen->email,
-            'phone' => $serviceRequest->citizen->phone_number,
             'created_at' => $serviceRequest->created_at->toIso8601String(),
             'updated_at' => $serviceRequest->updated_at->toIso8601String(),
             'qr_token' => $serviceRequest->qr_code_token,
-        ]);
+        ];
     }
 }
