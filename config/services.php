@@ -32,4 +32,12 @@ return[
 
     'ocr_space_api_key' => env('OCR_SPACE_API_KEY'),
     'ocr_space_language' => env('OCR_SPACE_LANGUAGE', 'auto'),
+
+    'twilio' => [
+        'account_sid' => env('TWILIO_ACCOUNT_SID'),
+        'auth_token' => env('TWILIO_AUTH_TOKEN'),
+        'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'),
+        'whatsapp_to_override' => env('TWILIO_WHATSAPP_TO_OVERRIDE'),
+        'sms_from' => env('TWILIO_SMS_FROM'),
+    ],
 ];

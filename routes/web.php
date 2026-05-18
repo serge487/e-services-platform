@@ -40,6 +40,7 @@ use App\Http\Controllers\Municipality\ServiceRequestController;
 use App\Http\Controllers\Municipality\TwoFactorSetupController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPortalController;
+use App\Http\Controllers\PublicServiceDocumentController;
 use App\Http\Controllers\QrCodeScanController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Citizen\FeedbackController as CitizenFeedbackController;
@@ -52,6 +53,9 @@ Route::get('/', [PublicPortalController::class, 'index'])->name('portal');
 Route::get('/offices/{office}', [PublicPortalController::class, 'show'])->name('portal.office');
 Route::get('/offices/{office}/feedbacks', [PublicPortalController::class, 'feedbacks'])->name('portal.office.feedbacks');
 Route::get('/services/{service}/request', [PublicPortalController::class, 'requestService'])->name('portal.services.request');
+Route::get('/service-documents/{document}/download', [PublicServiceDocumentController::class, 'download'])
+    ->middleware('signed:relative')
+    ->name('public.service-documents.download');
 
 // --------------------------------------------------------------------------
 // Legacy redirects — keep old paths working
