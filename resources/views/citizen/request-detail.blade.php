@@ -670,6 +670,10 @@
             </div>
 
             {{-- QR Tracking --}}
+            @php
+                $qrTrackingUrl = \App\Support\QrCodeSvg::trackingUrl($serviceRequest->qr_code_token);
+                $qrCodeSvg = \App\Support\QrCodeSvg::render($qrTrackingUrl, 140);
+            @endphp
             <div class="d-card">
                 <div class="d-card-head">
                     <i class="bi bi-qr-code"></i> Track Request
@@ -678,7 +682,10 @@
                     <p class="small text-muted mb-3">
                         Scan this QR code to track your request status:
                     </p>
-                    <div id="qrcode" style="display:inline-block; padding:8px; border:1px solid var(--g-border); border-radius:10px; background:#fff;" class="mb-3"></div>
+                    <div style="display:inline-block; padding:8px; border:1px solid var(--g-border); border-radius:10px; background:#fff; line-height:0;" class="mb-3">
+                        {!! $qrCodeSvg !!}
+                    </div>
+                    <div class="text-muted small mb-2" style="word-break:break-all;">{{ $qrTrackingUrl }}</div>
                     <div class="text-muted small mb-2">Or use this token:</div>
                     <div class="token-box">{{ $serviceRequest->qr_code_token }}</div>
                 </div>
@@ -749,18 +756,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const token  = "{{ $serviceRequest->qr_code_token }}";
-    const scanUrl = "{{ route('qr.scan', ['token' => '__T__'], absolute: true) }}".replace('__T__', token);
-    new QRCode(document.getElementById('qrcode'), {
-        text: scanUrl, width: 140, height: 140,
-        colorDark: '#000', colorLight: '#fff',
-        correctLevel: QRCode.CorrectLevel.H
-    });
-});
-
 @if(auth()->check())
 if (typeof window.Echo !== 'undefined') {
     const requestId = {{ $serviceRequest->id }};

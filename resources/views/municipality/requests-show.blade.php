@@ -41,6 +41,10 @@
 
 {{-- REQUEST INFO --}}
 <div class="card border-0 shadow-sm" style="margin-bottom:0.5rem;">
+    @php
+        $qrTrackingUrl = \App\Support\QrCodeSvg::trackingUrl($serviceRequest->qr_code_token);
+        $qrCodeSvg = \App\Support\QrCodeSvg::render($qrTrackingUrl, 60);
+    @endphp
     <div class="card-header bg-light py-1" style="padding: 0.3rem 0.5rem;">
         <small class="fw-bold">Request #{{ $serviceRequest->id }} | 
         @php
@@ -65,7 +69,7 @@
         @if($serviceRequest->isAccepted())
             <div class="info-row"><span class="info-label">Taken By:</span><span class="info-val">{{ $serviceRequest->acceptedBy?->name ?? 'Staff' }} - {{ $serviceRequest->accepted_at->format('d M Y H:i') }}</span></div>
         @endif
-        <div class="info-row" style="border-bottom:0;"><span class="info-label">QR:</span><span class="info-val"><div id="qrcode" style="display: inline-block; padding: 1px; border: 1px solid #ddd; line-height:0;"></div></span></div>
+        <div class="info-row" style="border-bottom:0;"><span class="info-label">QR:</span><span class="info-val"><div style="display: inline-block; padding: 1px; border: 1px solid #ddd; line-height:0;">{!! $qrCodeSvg !!}</div></span></div>
     </div>
 </div>
 
@@ -254,23 +258,7 @@
 </div>
 
 @section('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const qrToken = "{{ $serviceRequest->qr_code_token }}";
-        const scanUrl = "{{ route('qr.scan', ['token' => '__TOKEN__'], absolute: true) }}".replace('__TOKEN__', qrToken);
-        if (document.getElementById('qrcode')) {
-            new QRCode(document.getElementById('qrcode'), {
-                text: scanUrl,
-                width: 60,
-                height: 60,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        }
-    });
-
     @if(auth()->check())
         if (typeof window.Echo !== 'undefined') {
             window.Echo.private('service-request.{{ $serviceRequest->id }}')
