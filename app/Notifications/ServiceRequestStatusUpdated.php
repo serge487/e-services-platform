@@ -21,7 +21,23 @@ class ServiceRequestStatusUpdated extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        $channels = ['database'];
+
+        if ($this->canUseMailChannel()) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
+    }
+
+    private function canUseMailChannel(): bool
+    {
+        if (config('mail.default') !== 'gmail-oauth') {
+            return true;
+        }
+
+        return class_exists(\Google\Client::class)
+            && class_exists(\Google\Service\Gmail::class);
     }
 
     public function toMail(object $notifiable): MailMessage

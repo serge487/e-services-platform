@@ -8,6 +8,8 @@ use App\Models\RequestDocument;
 use App\Models\ServiceRequest;
 use App\Models\Payment;
 use App\Notifications\ServiceRequestStatusUpdated;
+use App\Services\ServiceRequestCompletionDocumentService;
+use App\Services\ServiceRequestDocumentNotifier;
 use App\Services\NotificationRealtimeBroadcaster;
 use App\Services\PaymentRevenueBroadcaster;
 use Illuminate\Http\Request;
@@ -102,6 +104,12 @@ class ServiceRequestController extends Controller
 
         if ($validated['status'] === ServiceRequest::STATUS_COMPLETED) {
             PaymentRevenueBroadcaster::broadcastForServiceRequest($serviceRequest);
+        }
+
+        if ($validated['status'] === ServiceRequest::STATUS_COMPLETED && $previousStatus !== ServiceRequest::STATUS_COMPLETED) {
+            $document = app(ServiceRequestCompletionDocumentService::class)->createFor($serviceRequest->fresh());
+            app(ServiceRequestDocumentNotifier::class)->broadcastDocumentUploaded($serviceRequest->fresh(), $document);
+            app(ServiceRequestDocumentNotifier::class)->notify($serviceRequest->fresh(), $document);
         }
 
         ServiceRequestStatusChanged::dispatch(
@@ -199,22 +207,8 @@ class ServiceRequestController extends Controller
         'type' => 'official_response',
     ]);
 
-    // Broadcast to citizen in real time
-    try {
-        $downloadUrl = route('citizen.service-requests.download', [
-            $serviceRequest->id,
-            $doc->id,
-        ]);
-
-        broadcast(new \App\Events\OfficialDocumentUploaded(
-            $serviceRequest->citizen_id,
-            $serviceRequest->id,
-            basename($filePath),
-            $downloadUrl,
-        ))->toOthers();
-    } catch (\Exception $e) {
-        // Non-fatal if Reverb is down
-    }
+    app(ServiceRequestDocumentNotifier::class)->broadcastDocumentUploaded($serviceRequest, $doc);
+    app(ServiceRequestDocumentNotifier::class)->notify($serviceRequest, $doc);
 
     return back()->with('success', 'Official response document uploaded successfully.');
 }
